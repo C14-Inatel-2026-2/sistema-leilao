@@ -84,3 +84,13 @@ Ferramentas sugeridas para teste manual: Postman, Insomnia ou `curl`.
 - [Estrutura e stack](docs/estrutura-e-stack.md) — árvore de diretórios e tecnologias
 
 Documentos de entrega acadêmica (Projeto C14): [`Projeto-C14/docs/`](Projeto-C14/docs/EntregaInicial/).
+
+---
+
+## Branches
+
+| Branch | Propósito |
+|---|---|
+| `main` | Documentação estável e referência do projeto |
+| `dev` | Integração do código em desenvolvimento |
+| `feature/*`, `chore/*` | Trabalho isolado; merge em `dev` via pull request |
