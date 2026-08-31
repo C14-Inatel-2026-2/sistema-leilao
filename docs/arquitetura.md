@@ -136,7 +136,3 @@ Em ambos os casos, o job **não contém regra de negócio** — apenas dispara c
 - **Testes de domínio puros** (sem banco, sem Flask) garantem cobertura das regras críticas de lance e transição de estado
 
 ---
-
-## Referência acadêmica
-
-Este documento sintetiza as entregas iniciais do Projeto C14 (NP2). Detalhes de divisão de equipe, metodologia e requisitos do edital estão em [`Projeto-C14/docs/EntregaInicial/`](../Projeto-C14/docs/EntregaInicial/).
