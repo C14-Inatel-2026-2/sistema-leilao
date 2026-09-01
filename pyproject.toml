@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "sistema-leilao"
+version = "0.1.0"
+description = "Marketplace de anúncios com módulo de leilão integrado"
+authors = []
+readme = "README.md"
+packages = [
+    { include = "domain" },
+    { include = "use_cases" },
+    { include = "adapters" },
+    { include = "infra" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+flask = "^3.1"
+flask-restful = "^0.3.10"
+sqlalchemy = "^2.0"
+flask-migrate = "^4.0"
+flask-jwt-extended = "^4.7"
+flasgger = "^0.9.7"
+psycopg2-binary = "^2.9"
+apscheduler = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+pytest-flask = "^1.3"
+pytest-cov = "^6.0"
+
+[tool.poetry.group.celery]
+optional = true
+
+[tool.poetry.group.celery.dependencies]
+celery = "^5.4"
+redis = "^5.2"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["domain", "use_cases", "adapters", "infra"]
+omit = ["tests/*"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

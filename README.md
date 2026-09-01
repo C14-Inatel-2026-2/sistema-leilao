@@ -82,5 +82,17 @@ Ferramentas sugeridas para teste manual: Postman, Insomnia ou `curl`.
 
 - [Arquitetura](docs/arquitetura.md) — camadas, domínio, eventos, concorrência
 - [Estrutura e stack](docs/estrutura-e-stack.md) — árvore de diretórios e tecnologias
+- [Próximos passos](docs/proximos-passos.md) — roteiro de implementação e ordem de PRs
+- [Arquivamento de conversas com IA](docs/arquivamento-conversas-ia.md) — exportação e publicação de chats com IA
 
 Documentos de entrega acadêmica (Projeto C14): [`Projeto-C14/docs/`](Projeto-C14/docs/EntregaInicial/).
+
+---
+
+## Branches
+
+| Branch | Propósito |
+|---|---|
+| `main` | Documentação estável e referência do projeto |
+| `dev` | Integração do código em desenvolvimento |
+| `feature/*`, `chore/*` | Trabalho isolado; merge em `dev` via pull request |
