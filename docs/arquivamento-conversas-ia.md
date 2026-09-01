@@ -59,31 +59,50 @@ O skill perguntará qual integrante é o autor:
 
 ### 3. Escolher o escopo
 
-- **Conversa atual** — exporta apenas a sessão em andamento
-- **Últimas N** — exporta as N conversas mais recentes encontradas localmente
+- **Conversa atual** — transcrição literal da sessão em andamento (feita pelo agente a partir do contexto)
+- **Últimas N** — exportação do histórico local via `.jsonl` (pode estar incompleta)
 
-### 4. Exportação automática
+### 4. Exportação
 
-O agente executa o script na raiz do repositório:
+#### Conversa atual — transcrição literal (recomendado)
+
+O Cursor grava arquivos `.jsonl` locais com grande parte das respostas marcadas como `[REDACTED]`. Por isso, para a conversa em andamento, o **agente deve transcrever manualmente** todo o histórico da sessão e salvar o arquivo.
+
+Formato de cada mensagem:
+
+```markdown
+## Mensagem 1 — Usuário
+<texto completo>
+
+## Mensagem 2 — Assistente
+<texto completo da resposta>
+```
+
+Depois, salve com:
 
 ```bash
 python tools/exportar-conversas/exportar_conversa.py \
+  --modo transcrever \
   --autor "Caio" \
   --ferramenta cursor \
-  --escopo atual \
+  --titulo "titulo-da-conversa" \
+  --corpo transcricao.md \
   --repo-root .
 ```
 
-Para múltiplas conversas:
+#### Últimas N — histórico local (pode ser parcial)
 
 ```bash
 python tools/exportar-conversas/exportar_conversa.py \
+  --modo jsonl \
   --autor "Téo" \
-  --ferramenta claude \
+  --ferramenta cursor \
   --escopo ultimas \
   --n 3 \
   --repo-root .
 ```
+
+O script inclui chamadas de ferramenta e marca trechos redigidos, mas **não substitui** a transcrição literal para a conversa atual.
 
 ### 5. Revisar arquivos gerados
 
@@ -102,7 +121,7 @@ Nenhuma ação git é executada sem sua aprovação explícita.
 
 ## Formato dos arquivos exportados
 
-Cada conversa vira um arquivo Markdown com frontmatter YAML:
+Cada conversa vira um arquivo Markdown com frontmatter YAML e **transcrição turno a turno**:
 
 ```markdown
 ---
@@ -111,14 +130,25 @@ ferramenta: cursor
 data_inicio: 2026-09-01T17:08:00-03:00
 conversa_id: 8c1dd47f-a95b-424d-8c38-cd1aa40eba5a
 titulo: "Skill arquivar conversas IA"
+fonte: transcricao
 ---
 
-## Usuário
-<texto da mensagem>
+## Mensagem 1 — Usuário
+<texto completo da mensagem>
 
-## Assistente
-<texto da resposta>
+## Mensagem 2 — Assistente
+<texto completo da resposta>
+
+## Mensagem 3 — Usuário
+...
 ```
+
+O campo `fonte` indica a origem:
+
+| Valor | Significado |
+|---|---|
+| `transcricao` | Transcrição literal feita pelo agente (completa) |
+| `jsonl` | Lida do arquivo local (pode ter trechos redigidos) |
 
 ### Convenção de nomes de arquivo
 
@@ -183,7 +213,13 @@ O Antigravity armazena dados em formatos menos padronizados. Nesse caso:
 1. O agente reconstrói a conversa atual a partir do contexto da sessão
 2. Salva manualmente usando o template acima
 
-### Possíveis segredos detectados
+### Exportação incompleta / trechos redigidos
+
+O Cursor salva transcripts locais com `[REDACTED]` no lugar das respostas completas. Se o arquivo exportado parece um resumo em vez de uma transcrição:
+
+1. Use o modo `transcrever` (conversa atual)
+2. Peça ao agente para reescrever a conversa **na íntegra**, mensagem por mensagem
+3. Não use `--modo jsonl --escopo atual` esperando transcrição completa
 
 O script redige automaticamente padrões como `api_key=...`, tokens `sk-...`, `ghp_...` e chaves AWS. Revise o arquivo antes do commit e remova manualmente qualquer dado sensível restante.
 

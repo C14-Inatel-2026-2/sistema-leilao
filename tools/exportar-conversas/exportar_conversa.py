@@ -36,17 +36,11 @@ SECRET_PATTERNS = [
 
 TIMESTAMP_RE = re.compile(r"<timestamp>(.*?)</timestamp>", re.DOTALL)
 USER_QUERY_RE = re.compile(r"<user_query>(.*?)</user_query>", re.DOTALL)
+REDACTED_NOTE = "*(conteúdo redigido pelo Cursor no arquivo local)*"
 MONTH_MAP = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
     "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
 }
-
-
-def clean_message_text(text: str) -> str:
-    lines = [line for line in text.split("\n") if line.strip() != "[REDACTED]"]
-    cleaned = "\n".join(lines)
-    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
-    return cleaned.strip()
 
 
 def normalize_author(author: str) -> tuple[str, str]:
@@ -84,7 +78,6 @@ def extract_timestamp(text: str) -> str | None:
 
 
 def parse_human_timestamp(raw: str) -> str | None:
-    """Converte timestamps legíveis do Cursor para ISO-8601."""
     match = re.match(
         r"\w+,\s+(\w+)\s+(\d{1,2}),\s+(\d{4}),\s+(\d{1,2}):(\d{2})\s+(AM|PM)\s+\(UTC([+-]\d+)\)",
         raw,
@@ -117,10 +110,63 @@ def extract_user_query(text: str) -> str:
     return cleaned
 
 
+def format_tool_use(block: dict) -> str:
+    name = block.get("name") or block.get("tool_name") or "ferramenta"
+    tool_input = block.get("input") or block.get("arguments") or {}
+    if isinstance(tool_input, dict):
+        summary_parts = []
+        for key in ("command", "path", "pattern", "description", "query", "search_term"):
+            if key in tool_input and tool_input[key]:
+                summary_parts.append(f"{key}: {tool_input[key]}")
+        if not summary_parts:
+            summary_parts.append(json.dumps(tool_input, ensure_ascii=False)[:500])
+        detail = "; ".join(summary_parts)
+    else:
+        detail = str(tool_input)[:500]
+    return f"> **Ferramenta:** `{name}` — {detail}"
+
+
+def format_text_block(text: str) -> str:
+    text = text.strip()
+    if text == "[REDACTED]":
+        return REDACTED_NOTE
+    if "[REDACTED]" in text:
+        visible = text.replace("[REDACTED]", "").strip()
+        parts = [part for part in (visible, REDACTED_NOTE) if part]
+        return "\n\n".join(parts)
+    return text
+
+
+def parse_content_blocks(content_blocks: list) -> str:
+    parts: list[str] = []
+    for block in content_blocks:
+        if not isinstance(block, dict):
+            continue
+        block_type = block.get("type")
+        if block_type == "text":
+            text = format_text_block(block.get("text", ""))
+            if text:
+                parts.append(text)
+        elif block_type in ("tool_use", "tool-call", "tool_call"):
+            parts.append(format_tool_use(block))
+        elif block_type == "tool_result":
+            result = block.get("content") or block.get("output") or ""
+            if isinstance(result, list):
+                result = "\n".join(
+                    item.get("text", str(item)) if isinstance(item, dict) else str(item)
+                    for item in result
+                )
+            result = str(result).strip()
+            if result:
+                parts.append(f"> **Resultado:**\n>\n> {result[:2000].replace(chr(10), chr(10) + '> ')}")
+    return "\n\n".join(parts).strip()
+
+
 def parse_jsonl_messages(path: Path) -> tuple[list[dict[str, str]], str | None, str]:
     messages: list[dict[str, str]] = []
     first_timestamp: str | None = None
     title = "conversa-ia"
+    turn = 0
 
     with path.open(encoding="utf-8") as handle:
         for line in handle:
@@ -140,22 +186,12 @@ def parse_jsonl_messages(path: Path) -> tuple[list[dict[str, str]], str | None, 
                 continue
 
             message = record.get("message", {})
-            content_blocks = message.get("content", [])
-            text_parts: list[str] = []
-
-            for block in content_blocks:
-                if not isinstance(block, dict):
-                    continue
-                if block.get("type") == "text":
-                    text = block.get("text", "").strip()
-                    if text:
-                        text_parts.append(text)
-
-            if not text_parts:
+            combined = parse_content_blocks(message.get("content", []))
+            if not combined:
                 continue
 
-            combined = "\n\n".join(text_parts)
             if role == "user":
+                turn += 1
                 ts = extract_timestamp(combined)
                 if ts and not first_timestamp:
                     first_timestamp = ts
@@ -164,14 +200,16 @@ def parse_jsonl_messages(path: Path) -> tuple[list[dict[str, str]], str | None, 
                     title = slugify(combined.split("\n")[0][:80])
 
             combined, _ = redact_secrets(combined)
-            combined = clean_message_text(combined)
             if not combined.strip():
                 continue
 
-            if messages and messages[-1]["role"] == role:
-                messages[-1]["text"] += "\n\n" + combined
-            else:
-                messages.append({"role": role, "text": combined})
+            role_label = "Usuário" if role == "user" else "Assistente"
+            messages.append({
+                "role": role,
+                "turn": turn if role == "user" else turn,
+                "heading": f"## Mensagem {turn} — {role_label}",
+                "text": combined,
+            })
 
     return messages, first_timestamp, title
 
@@ -179,7 +217,12 @@ def parse_jsonl_messages(path: Path) -> tuple[list[dict[str, str]], str | None, 
 def parse_antigravity_markdown(path: Path) -> tuple[list[dict[str, str]], str | None, str]:
     content = path.read_text(encoding="utf-8")
     title = slugify(path.stem)
-    messages = [{"role": "assistant", "text": content}]
+    messages = [{
+        "role": "assistant",
+        "turn": 1,
+        "heading": "## Mensagem 1 — Assistente",
+        "text": content,
+    }]
     mtime = datetime.fromtimestamp(path.stat().st_mtime)
     return messages, mtime.isoformat(), title
 
@@ -191,16 +234,27 @@ def build_markdown(
     title: str,
     data_inicio: str | None,
     messages: list[dict[str, str]],
+    fonte: str = "jsonl",
 ) -> str:
     if not data_inicio:
         data_inicio = datetime.now().astimezone().isoformat(timespec="seconds")
 
-    role_labels = {"user": "Usuário", "assistant": "Assistente"}
     body_lines: list[str] = []
+    if fonte == "jsonl":
+        body_lines.append(
+            "> **Nota:** exportação a partir do arquivo local `.jsonl`. "
+            "Trechos marcados como redigidos não estão disponíveis no disco. "
+            "Para transcrição literal da conversa atual, use o modo `transcrever`.\n"
+        )
 
     for msg in messages:
-        label = role_labels.get(msg["role"], msg["role"].title())
-        body_lines.append(f"## {label}\n")
+        heading = msg.get("heading")
+        if not heading:
+            role_label = "Usuário" if msg["role"] == "user" else "Assistente"
+            turn = msg.get("turn", "?")
+            heading = f"## Mensagem {turn} — {role_label}"
+        body_lines.append(heading)
+        body_lines.append("")
         body_lines.append(msg["text"])
         body_lines.append("")
 
@@ -211,6 +265,7 @@ def build_markdown(
         f"data_inicio: {data_inicio}\n"
         f"conversa_id: {conversa_id}\n"
         f'titulo: "{title.replace(chr(34), chr(39))}"\n'
+        f"fonte: {fonte}\n"
         "---\n"
     )
     return frontmatter + "\n" + "\n".join(body_lines).rstrip() + "\n"
@@ -226,6 +281,27 @@ def unique_output_path(output_dir: Path, base_name: str) -> Path:
         if not candidate.exists():
             return candidate
         counter += 1
+
+
+def save_markdown(
+    markdown: str,
+    autor_folder: str,
+    ferramenta: str,
+    title: str,
+    repo_root: Path,
+    mtime: float | None = None,
+) -> Path:
+    if mtime is None:
+        dt = datetime.now().astimezone()
+    else:
+        dt = datetime.fromtimestamp(mtime, tz=timezone.utc).astimezone()
+
+    filename_base = f"{dt.strftime('%Y-%m-%d_%H%M')}_{ferramenta}_{slugify(title)}"
+    output_dir = repo_root / "docs" / "conversas-ia" / autor_folder
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = unique_output_path(output_dir, filename_base)
+    output_path.write_text(markdown, encoding="utf-8")
+    return output_path
 
 
 def export_transcript(
@@ -249,23 +325,50 @@ def export_transcript(
         title=title,
         data_inicio=data_inicio,
         messages=messages,
+        fonte="jsonl",
     )
 
     secrets_found = "[REDACTADO" in markdown
+    output_path = save_markdown(
+        markdown, autor_folder, ref.ferramenta, title, repo_root, ref.mtime
+    )
+    return output_path, secrets_found
 
-    if data_inicio:
-        try:
-            dt = datetime.fromisoformat(data_inicio.replace("Z", "+00:00"))
-        except ValueError:
-            dt = datetime.fromtimestamp(ref.mtime, tz=timezone.utc).astimezone()
-    else:
-        dt = datetime.fromtimestamp(ref.mtime, tz=timezone.utc).astimezone()
 
-    filename_base = f"{dt.strftime('%Y-%m-%d_%H%M')}_{ref.ferramenta}_{title}"
-    output_dir = repo_root / "docs" / "conversas-ia" / autor_folder
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = unique_output_path(output_dir, filename_base)
-    output_path.write_text(markdown, encoding="utf-8")
+def save_transcription(
+    corpo: str,
+    autor_display: str,
+    autor_folder: str,
+    ferramenta: str,
+    repo_root: Path,
+    titulo: str,
+    conversa_id: str | None = None,
+    data_inicio: str | None = None,
+) -> tuple[Path, bool]:
+    corpo = corpo.strip()
+    if not corpo:
+        raise ValueError("Corpo da transcrição vazio.")
+
+    corpo, secrets_found = redact_secrets(corpo)
+    title = titulo or slugify(corpo.split("\n", 1)[0][:80])
+    if title.startswith("mensagem"):
+        title = "conversa-ia"
+
+    if not data_inicio:
+        data_inicio = datetime.now().astimezone().isoformat(timespec="seconds")
+
+    frontmatter = (
+        "---\n"
+        f'autor: "{autor_display}"\n'
+        f"ferramenta: {ferramenta}\n"
+        f"data_inicio: {data_inicio}\n"
+        f"conversa_id: {conversa_id or f'manual-{datetime.now().strftime('%Y%m%d%H%M%S')}'}\n"
+        f'titulo: "{title.replace(chr(34), chr(39))}"\n'
+        "fonte: transcricao\n"
+        "---\n"
+    )
+    markdown = frontmatter + "\n" + corpo + "\n"
+    output_path = save_markdown(markdown, autor_folder, ferramenta, title, repo_root)
     return output_path, secrets_found
 
 
@@ -281,17 +384,60 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Exporta conversas com IA para docs/conversas-ia/")
     parser.add_argument("--autor", required=True, help="Caio, Téo, Pedro Vitor ou Pedro Paiva")
     parser.add_argument("--ferramenta", required=True, choices=FERRAMENTAS)
-    parser.add_argument("--escopo", required=True, choices=("atual", "ultimas"))
+    parser.add_argument(
+        "--modo",
+        choices=("jsonl", "transcrever"),
+        default="jsonl",
+        help="jsonl=lê arquivo local; transcrever=salva corpo fornecido pelo agente",
+    )
+    parser.add_argument("--escopo", choices=("atual", "ultimas"), default="atual")
     parser.add_argument("--n", type=int, default=1, help="Quantidade de conversas (escopo=ultimas)")
     parser.add_argument("--repo-root", type=Path, default=Path("."))
+    parser.add_argument("--corpo", type=Path, help="Arquivo com transcrição literal (modo transcrever)")
+    parser.add_argument("--titulo", default="", help="Título da conversa")
+    parser.add_argument("--conversa-id", default="", help="ID da conversa")
     args = parser.parse_args()
 
     repo_root = args.repo_root.resolve()
     autor_display, autor_folder = normalize_author(args.autor)
 
+    if args.modo == "transcrever":
+        if not args.corpo:
+            print(
+                "Erro: modo transcrever exige --corpo <arquivo.md> com a transcrição literal.",
+                file=sys.stderr,
+            )
+            return 1
+        corpo = args.corpo.read_text(encoding="utf-8")
+        try:
+            path, secrets = save_transcription(
+                corpo=corpo,
+                autor_display=autor_display,
+                autor_folder=autor_folder,
+                ferramenta=args.ferramenta,
+                repo_root=repo_root,
+                titulo=args.titulo,
+                conversa_id=args.conversa_id or None,
+            )
+        except ValueError as exc:
+            print(f"Erro: {exc}", file=sys.stderr)
+            return 1
+        print("Transcrição salva:")
+        print(f"  - {path.relative_to(repo_root)}")
+        if secrets:
+            print("\nAviso: possíveis segredos foram redigidos.", file=sys.stderr)
+        return 0
+
     if args.escopo == "ultimas" and args.n < 1:
         print("Erro: --n deve ser >= 1 para escopo 'ultimas'.", file=sys.stderr)
         return 1
+
+    if args.escopo == "atual":
+        print(
+            "Aviso: o arquivo .jsonl local do Cursor redige grande parte das respostas.\n"
+            "Para transcrição literal da conversa atual, o agente deve usar --modo transcrever.\n",
+            file=sys.stderr,
+        )
 
     refs = list_transcripts(args.ferramenta, repo_root)
     selected = select_transcripts(refs, args.escopo, args.n)
@@ -301,12 +447,6 @@ def main() -> int:
             f"Erro: nenhuma conversa encontrada para ferramenta '{args.ferramenta}'.",
             file=sys.stderr,
         )
-        if args.ferramenta == "antigravity":
-            print(
-                "Para Antigravity, exporte manualmente a conversa atual em Markdown "
-                "ou verifique ~/.gemini/antigravity/brain/.",
-                file=sys.stderr,
-            )
         return 1
 
     exported: list[Path] = []
@@ -324,15 +464,12 @@ def main() -> int:
         print("Erro: nenhum arquivo foi exportado.", file=sys.stderr)
         return 1
 
-    print("Exportação concluída:")
+    print("Exportação concluída (parcial — ver nota sobre redação no arquivo):")
     for path in exported:
         print(f"  - {path.relative_to(repo_root)}")
 
     if any_secrets:
-        print(
-            "\nAviso: possíveis segredos foram redigados. Revise os arquivos antes do commit.",
-            file=sys.stderr,
-        )
+        print("\nAviso: possíveis segredos foram redigidos.", file=sys.stderr)
 
     return 0
 

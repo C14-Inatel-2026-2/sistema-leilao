@@ -9,12 +9,18 @@ disable-model-invocation: true
 
 # Exportar Conversas com IA
 
-Arquiva conversas com IA no repositório, conforme exigência acadêmica do projeto.
+Arquiva a **transcrição literal** da conversa no repositório, conforme exigência acadêmica.
 
-## Quando usar
+## Regra principal
 
-- Usuário pede para arquivar, exportar ou publicar conversa(s) com IA
-- Usuário invoca `/exportar-conversas-ia` ou `@exportar-conversas-ia`
+O objetivo é uma **transcrição completa**: cada mensagem do usuário e cada resposta do assistente, **na íntegra**, na ordem em que ocorreram.
+
+O arquivo `.jsonl` local do Cursor **não contém** as respostas completas — o Cursor grava `[REDACTED]` no disco. Por isso:
+
+| Escopo | Método |
+|---|---|
+| **Conversa atual** | Agente transcreve do contexto da sessão (obrigatório) |
+| **Últimas N** | Script lê `.jsonl` local (pode estar incompleto; avisar o usuário) |
 
 ## Checklist de execução
 
@@ -22,7 +28,7 @@ Arquiva conversas com IA no repositório, conforme exigência acadêmica do proj
 - [ ] 1. Perguntar autor
 - [ ] 2. Perguntar escopo (atual ou últimas N)
 - [ ] 3. Detectar ferramenta
-- [ ] 4. Executar script de exportação
+- [ ] 4. Exportar transcrição literal
 - [ ] 5. Mostrar resumo dos arquivos criados
 - [ ] 6. Confirmar commit (se usuário aceitar)
 - [ ] 7. Confirmar push (se usuário aceitar)
@@ -30,7 +36,7 @@ Arquiva conversas com IA no repositório, conforme exigência acadêmica do proj
 
 ## Passo 1 — Identificar o autor
 
-Pergunte sempre qual integrante é o autor da conversa:
+Pergunte sempre qual integrante é o autor:
 
 - Caio
 - Téo
@@ -39,39 +45,72 @@ Pergunte sempre qual integrante é o autor da conversa:
 
 ## Passo 2 — Definir escopo
 
-Pergunte o escopo:
-
-- **Conversa atual** — exporta apenas a sessão mais recente
-- **Últimas N** — exporta as N conversas mais recentes (pedir o valor de N)
+- **Conversa atual** — transcrever toda a sessão em andamento
+- **Últimas N** — exportar N conversas do histórico local (pode ser parcial)
 
 ## Passo 3 — Detectar ferramenta
-
-Identifique a ferramenta ativa:
 
 | Ferramenta | Como detectar |
 |---|---|
 | Cursor | Sessão no Cursor IDE |
 | Antigravity | Sessão no Google Antigravity |
-| Claude Code | Sessão no Claude Code (CLI ou extensão) |
+| Claude Code | Sessão no Claude Code |
 
-Se não for possível detectar, pergunte ao usuário.
+## Passo 4 — Exportar transcrição literal
 
-## Passo 4 — Executar exportação
+### Conversa atual (método principal)
 
-Na raiz do repositório, execute:
+1. Revise **todo** o histórico da sessão no seu contexto
+2. Escreva a transcrição completa em um arquivo temporário, seguindo o formato abaixo
+3. Salve com o script:
 
 ```bash
 python tools/exportar-conversas/exportar_conversa.py \
+  --modo transcrever \
   --autor "<nome>" \
   --ferramenta <cursor|claude|antigravity> \
-  --escopo atual \
+  --titulo "<titulo-resumido-da-conversa>" \
+  --corpo /caminho/para/transcricao.md \
   --repo-root .
 ```
 
-Para últimas N conversas:
+**Alternativa:** escreva o arquivo final diretamente em `docs/conversas-ia/<pasta-do-autor>/` com frontmatter + corpo.
+
+#### Formato obrigatório da transcrição
+
+Cada troca de mensagem vira uma seção numerada. Inclua **todo o texto** que o usuário enviou e **todo o texto** que você respondeu — sem resumir, sem omitir.
+
+```markdown
+## Mensagem 1 — Usuário
+
+<texto completo da primeira mensagem do usuário>
+
+## Mensagem 2 — Assistente
+
+<texto completo da sua primeira resposta, incluindo explicações, código citado e conclusões>
+
+## Mensagem 3 — Usuário
+
+<texto completo da segunda mensagem do usuário>
+
+## Mensagem 4 — Assistente
+
+<texto completo da sua segunda resposta>
+```
+
+Regras da transcrição:
+
+- **Não resuma** — copie o conteúdo integral de cada turno
+- **Não omita** respostas intermediárias — cada resposta sua é uma seção
+- Ações de ferramenta podem aparecer como bloco dentro da mensagem do assistente:
+  `> **Ferramenta:** \`Read\` — path: src/foo.py`
+- Não inclua tokens, senhas ou conteúdo de `.env`
+
+### Últimas N conversas (histórico local)
 
 ```bash
 python tools/exportar-conversas/exportar_conversa.py \
+  --modo jsonl \
   --autor "<nome>" \
   --ferramenta <cursor|claude|antigravity> \
   --escopo ultimas \
@@ -79,34 +118,19 @@ python tools/exportar-conversas/exportar_conversa.py \
   --repo-root .
 ```
 
-### Fallback Antigravity
-
-Se o script não encontrar conversas do Antigravity:
-
-1. Reconstrua a conversa atual manualmente em Markdown
-2. Use o template em [docs/arquivamento-conversas-ia.md](../../docs/arquivamento-conversas-ia.md)
-3. Salve em `docs/conversas-ia/<pasta-do-autor>/` com o padrão de nome:
-   `YYYY-MM-DD_HHmm_antigravity_<slug-titulo>.md`
-
-### Fallback sem transcript local
-
-Se nenhum arquivo local for encontrado, exporte a conversa atual do contexto da sessão usando o mesmo template Markdown.
+Avise o usuário que conversas antigas exportadas via `.jsonl` podem ter trechos redigidos pelo Cursor.
 
 ## Passo 5 — Resumo
 
-Informe ao usuário:
+Informe:
 
 - Quantos arquivos foram criados
-- Caminho de cada arquivo em `docs/conversas-ia/<autor>/`
-- Se houve redação de possíveis segredos (revisar antes do commit)
+- Caminho em `docs/conversas-ia/<autor>/`
+- Se a exportação é transcrição literal ou parcial (jsonl)
 
 ## Passo 6 — Commit (com confirmação)
 
 **Nunca faça commit sem confirmação explícita.**
-
-Pergunte: "Deseja criar o commit com os arquivos exportados?"
-
-Se sim:
 
 ```bash
 git add docs/conversas-ia/
@@ -116,10 +140,6 @@ git commit -m "docs: arquiva conversa(s) IA de <autor> (<ferramenta>)"
 ## Passo 7 — Push (com confirmação)
 
 **Nunca faça push sem confirmação explícita.**
-
-Pergunte: "Deseja fazer push para o GitHub?"
-
-Se sim:
 
 ```bash
 git push
