@@ -2,6 +2,8 @@
 
 Roteiro de implementação do **sistema-leilao** após o scaffolding inicial (diretórios, Poetry, `docker-compose`, `.gitignore`). O código de negócio ainda não existe — este documento traz **sugestões** de ordem de trabalho, convenções e prioridades para o MVP. A sequência abaixo é recomendada, não obrigatória.
 
+Distribuição detalhada de responsabilidades por integrante em [`responsabilidades-equipe.md`](responsabilidades-equipe.md).
+
 Contexto arquitetural em [`arquitetura.md`](arquitetura.md). Árvore de diretórios e stack em [`estrutura-e-stack.md`](estrutura-e-stack.md).
 
 ---
@@ -233,22 +235,69 @@ Não é bloqueante para o MVP, mas reduz ruído em PRs.
 
 ---
 
+## Distribuição de Responsabilidades
+
+Cada integrante atua como **Desenvolvedor Full Stack** em seu domínio e acumula um papel de **Guardião** transversal. Detalhes completos em [`responsabilidades-equipe.md`](responsabilidades-equipe.md).
+
+| Integrante | Domínio | Guardião |
+|------------|---------|----------|
+| **Téo** ([@TSM-05](https://github.com/TSM-05)) | Identidade e Usuários | UI/UX (padronização visual) |
+| **Caio** ([@caiosemblano](https://github.com/caiosemblano)) | Catálogo e Gestão de Leilões | Repositório (branches e revisão de PRs) |
+| **Pedro Vitor** ([@PedroVGSC](https://github.com/PedroVGSC)) | Motor de Lances e Tempo Real | Arquitetura e Integração (contratos de API) |
+| **Pedro** ([@phpaiva05](https://github.com/phpaiva05)) | Pós-Leilão, Histórico e Auditoria | Banco e Qualidade (modelagem e testes) |
+
+### PRs por integrante
+
+**Téo — Identidade e Usuários:**
+1. `feature/domain-usuario` — entidade `Usuario` e testes unitários
+2. `feature/infra-db-model-usuario` — model SQLAlchemy e migration
+3. `feature/flask-auth-jwt` — registro, login, JWT e proteção de rotas
+
+**Caio — Catálogo e Gestão de Leilões:**
+1. `feature/domain-entidades-catalogo` — entidades `Categoria`, `Anuncio`, `Leilao` e testes
+2. `feature/infra-db-models-catalogo` — models e migrations de catálogo
+3. `feature/adapters-repositories-catalogo` — repositories de anúncios e leilões
+4. `feature/use-case-criar-anuncio` — caso de uso de criação de anúncio
+5. `feature/flask-routes-catalogo` — endpoints REST de catálogo
+
+**Pedro Vitor — Motor de Lances e Tempo Real:**
+1. `feature/domain-lance` — entidade `Lance` e regras de lance em `Leilao`
+2. `feature/use-case-dar-lance` — lance com lock transacional e evento `LanceRealizado`
+3. `feature/use-case-encerrar-leilao` — encerramento, apuração e evento `LeilaoEncerrado`
+4. `feature/adapters-events` — publisher e eventos de domínio
+5. `feature/jobs-leilao` — APScheduler para abrir/encerrar leilões
+6. `feature/flask-routes-lances` — endpoints REST de lances
+
+**Pedro — Pós-Leilão, Histórico e Auditoria:**
+1. `feature/adapters-events-handlers` — handlers de `LeilaoEncerrado` e `LanceRealizado`
+2. `feature/infra-db-historico-auditoria` — models e migrations de histórico/auditoria
+3. `feature/flask-routes-historico` — endpoints de histórico e relatórios
+4. `chore/ci-jenkinsfile` — pipeline de CI com testes e cobertura
+
+---
+
 ## Ordem sugerida de PRs
 
 Branches `feature/*` e `chore/*` em sequência lógica — cada PR deve ser revisável e mergeável de forma independente:
 
-1. `feature/domain-entidades` — entidades, regras e testes unitários em `domain/`
-2. `feature/infra-db-models` — models SQLAlchemy e migration inicial
-3. `feature/adapters-repositories` — interfaces e implementações de persistência
-4. `feature/adapters-events` — publisher e handlers básicos
-5. `feature/use-case-criar-anuncio` — primeiro caso de uso ponta a ponta (sem HTTP)
-6. `feature/use-case-dar-lance` — lance com lock transacional e evento
-7. `feature/use-case-iniciar-encerrar-leilao` — transições de estado e apuração
-8. `feature/flask-app-factory` — factory, config, extensões
-9. `feature/flask-auth-jwt` — registro, login e proteção de rotas
-10. `feature/flask-routes-mvp` — endpoints REST + Flasgger
-11. `feature/jobs-leilao` — APScheduler para abrir/encerrar leilões
-12. `chore/ci-jenkinsfile` — pipeline de CI com testes e cobertura
+1. `feature/domain-usuario` — **(Téo)** entidade `Usuario` e testes unitários
+2. `feature/domain-entidades-catalogo` — **(Caio)** entidades de catálogo e testes
+3. `feature/domain-lance` — **(Pedro Vitor)** entidade `Lance` e regras de lance
+4. `feature/infra-db-model-usuario` — **(Téo)** model SQLAlchemy e migration de usuário
+5. `feature/infra-db-models-catalogo` — **(Caio)** models e migrations de catálogo
+6. `feature/adapters-repositories-catalogo` — **(Caio)** repositories de anúncios e leilões
+7. `feature/flask-auth-jwt` — **(Téo)** registro, login e proteção de rotas JWT
+8. `feature/use-case-criar-anuncio` — **(Caio)** primeiro caso de uso ponta a ponta
+9. `feature/use-case-dar-lance` — **(Pedro Vitor)** lance com lock transacional e evento
+10. `feature/use-case-encerrar-leilao` — **(Pedro Vitor)** encerramento e apuração
+11. `feature/adapters-events` — **(Pedro Vitor)** publisher e eventos de domínio
+12. `feature/adapters-events-handlers` — **(Pedro)** handlers para histórico e auditoria
+13. `feature/infra-db-historico-auditoria` — **(Pedro)** models de histórico
+14. `feature/flask-routes-catalogo` — **(Caio)** endpoints REST de catálogo + Flasgger
+15. `feature/flask-routes-lances` — **(Pedro Vitor)** endpoints REST de lances
+16. `feature/flask-routes-historico` — **(Pedro)** endpoints de histórico
+17. `feature/jobs-leilao` — **(Pedro Vitor)** APScheduler para abrir/encerrar leilões
+18. `chore/ci-jenkinsfile` — **(Pedro)** pipeline de CI com testes e cobertura
 
 PRs menores (ex.: separar auth de rotas) são bem-vindos se facilitarem a revisão.
 
@@ -282,6 +331,7 @@ Com esse recorte, é possível validar as regras críticas de lance, concorrênc
 
 ## Referências
 
+- [Responsabilidades da equipe](responsabilidades-equipe.md) — domínios, guardiões e tarefas por integrante
 - [Arquitetura](arquitetura.md) — camadas, domínio, eventos, concorrência
 - [Estrutura e stack](estrutura-e-stack.md) — árvore de diretórios, stack e fluxo de requisição
 - [README](../README.md) — visão do produto, regras de leilão e atores
