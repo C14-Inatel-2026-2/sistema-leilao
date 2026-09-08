@@ -14,7 +14,11 @@ Este relatório define, de forma estruturada, o que deve ser construído em um m
 
 ---
 
+
+
 ## 1. Introdução e Escopo
+
+
 
 ### 1.1 Objetivo do projeto acadêmico (backend web-only)
 
@@ -79,17 +83,23 @@ Essas metas alinham o projeto a boas práticas da indústria, em um domínio suf
 
 ---
 
+
+
 ## 2. Visão de Produto e Domínio
+
+
 
 ### 2.1 Perfis e papéis
 
 A plataforma terá, no mínimo, três tipos de papéis lógicos:
 
-| Papel | Descrição resumida | Permissões principais (exemplos) |
-|---|---|---|
-| Comprador | Usuário que navega o catálogo e participa de leilões | Ver anúncios/leilões; dar lances; consultar histórico de lances |
-| Vendedor | Usuário que oferta produtos no marketplace | Criar/editar anúncios; iniciar leilões; encerrar leilões próprios |
+
+| Papel            | Descrição resumida                                       | Permissões principais (exemplos)                                        |
+| ---------------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Comprador        | Usuário que navega o catálogo e participa de leilões     | Ver anúncios/leilões; dar lances; consultar histórico de lances         |
+| Vendedor         | Usuário que oferta produtos no marketplace               | Criar/editar anúncios; iniciar leilões; encerrar leilões próprios       |
 | Admin (opcional) | Operador responsável por monitorar e intervir no sistema | Listar todos os leilões; encerrar leilões problemáticos; consultar logs |
+
 
 No modelo de domínio, isso pode ser representado por um campo `role` na entidade `Usuario`, com valores como `COMPRADOR`, `VENDEDOR`, `ADMIN` (ou combinações). As checagens de permissão não devem ficar espalhadas em `if`s na camada HTTP; o ideal é:
 
@@ -143,13 +153,15 @@ Esse conjunto de cenários é o “contrato” de produto: qualquer evolução (
 
 A máquina de estados do leilão pode ser modelada como:
 
-| Estado | Descrição |
-|---|---|
-| `AGENDADO` | Leilão criado, aguardando o horário de início |
-| `ABERTO` | Leilão em andamento; aceita lances válidos |
-| `ENCERRADO` | Janela de lances fechada; resultado ainda não consolidado em pagamento |
-| `PAGO` | Venda simulada finalizada com “pagamento aprovado” |
+
+| Estado      | Descrição                                                                         |
+| ----------- | --------------------------------------------------------------------------------- |
+| `AGENDADO`  | Leilão criado, aguardando o horário de início                                     |
+| `ABERTO`    | Leilão em andamento; aceita lances válidos                                        |
+| `ENCERRADO` | Janela de lances fechada; resultado ainda não consolidado em pagamento            |
+| `PAGO`      | Venda simulada finalizada com “pagamento aprovado”                                |
 | `CANCELADO` | Leilão encerrado sem lances válidos, ou cancelado manualmente pelo vendedor/admin |
+
 
 A partir daí, regras de transição podem ser descritas de forma explícita:
 
@@ -171,18 +183,24 @@ Do ponto de vista de governança do produto, é útil definir quem, no grupo, se
 
 ---
 
+
+
 ## 3. Arquitetura Técnica e Stack
+
+
 
 ### 3.1 Padrão arquitetural
 
 A arquitetura proposta segue um padrão de Clean Architecture com leve inspiração em arquiteturas orientadas a eventos:
 
-| Camada | Pasta raiz | Responsabilidade principal |
-|---|---|---|
-| Domínio | `domain/` | Entidades e regras de negócio puras (sem frameworks): `Usuario`, `Anuncio`, `Leilao`, etc. |
-| Aplicação | `use_cases/` | Casos de uso (serviços de aplicação) que orquestram entidades, repositórios e eventos |
-| Adaptadores | `adapters/` | Implementações de interfaces (repositórios, event bus, gateways se existirem) |
-| Infraestrutura | `infra/` | Entrada/saída do sistema: API HTTP (Flask), ORM (SQLAlchemy), jobs (APScheduler), etc. |
+
+| Camada         | Pasta raiz   | Responsabilidade principal                                                                 |
+| -------------- | ------------ | ------------------------------------------------------------------------------------------ |
+| Domínio        | `domain/`    | Entidades e regras de negócio puras (sem frameworks): `Usuario`, `Anuncio`, `Leilao`, etc. |
+| Aplicação      | `use_cases/` | Casos de uso (serviços de aplicação) que orquestram entidades, repositórios e eventos      |
+| Adaptadores    | `adapters/`  | Implementações de interfaces (repositórios, event bus, gateways se existirem)              |
+| Infraestrutura | `infra/`     | Entrada/saída do sistema: API HTTP (Flask), ORM (SQLAlchemy), jobs (APScheduler), etc.     |
+
 
 A regra de dependência central é:
 
@@ -278,22 +296,26 @@ Essa organização explicita as responsabilidades:
 - `infra/`: foco em tecnologias de borda (HTTP, DB, agendadores).
 - `tests/`: espelha as camadas, com testes unitários para domínio/use_cases e de integração para adapters/infra.
 
+
+
 ### 3.3 Stack tecnológica
 
 A stack base recomendada é:
 
-| Camada / Finalidade | Tecnologia (sugestão) |
-|---|---|
-| Linguagem | Python 3.11+ |
-| Framework web | Flask (+ extensões REST) |
-| ORM e migrations | SQLAlchemy + Flask-Migrate |
-| Banco de dados | PostgreSQL |
-| Autenticação | JWT (biblioteca para Flask) |
-| Gerenciamento de dependências | Poetry |
-| Testes | pytest (+ extensões) |
-| Documentação de API | Swagger/OpenAPI (por ex., Flasgger) |
-| CI/CD | Jenkins (via Jenkinsfile) |
-| Jobs agendados | APScheduler (MVP) |
+
+| Camada / Finalidade           | Tecnologia (sugestão)               |
+| ----------------------------- | ----------------------------------- |
+| Linguagem                     | Python 3.11+                        |
+| Framework web                 | Flask (+ extensões REST)            |
+| ORM e migrations              | SQLAlchemy + Flask-Migrate          |
+| Banco de dados                | PostgreSQL                          |
+| Autenticação                  | JWT (biblioteca para Flask)         |
+| Gerenciamento de dependências | Poetry                              |
+| Testes                        | pytest (+ extensões)                |
+| Documentação de API           | Swagger/OpenAPI (por ex., Flasgger) |
+| CI/CD                         | Jenkins (via Jenkinsfile)           |
+| Jobs agendados                | APScheduler (MVP)                   |
+
 
 Essa combinação equilibra simplicidade e realismo: todas são tecnologias amplamente usadas, com boa documentação e tooling em torno.
 
@@ -308,16 +330,16 @@ Para o projeto acadêmico, uma estratégia recomendada é:
 1. Iniciar uma transação no banco.
 2. Carregar o registro do leilão (e/ou o “estado atual” – último lance) com lock pessimista (`SELECT ... FOR UPDATE`).
 3. Verificar, dentro da transação:
-   - se o leilão ainda está `ABERTO`;
-   - se o horário atual está dentro `[inicio, fim]`;
-   - se o valor do lance é ≥ `último_lance + incremento_mínimo`.
+  - se o leilão ainda está `ABERTO`;
+  - se o horário atual está dentro `[inicio, fim]`;
+  - se o valor do lance é ≥ `último_lance + incremento_mínimo`.
 4. Se as condições forem satisfeitas:
-   - inserir o novo lance;
-   - atualizar o “lance atual” no leilão;
-   - commitar a transação.
+  - inserir o novo lance;
+  - atualizar o “lance atual” no leilão;
+  - commitar a transação.
 5. Em caso de falha em qualquer validação:
-   - abortar a transação;
-   - retornar erro significativo na API.
+  - abortar a transação;
+  - retornar erro significativo na API.
 
 Essa abordagem garante que dois lances concorrentes sejam serializados em relação ao mesmo leilão, evitando que ambos sejam aceitos em condições que deveriam rejeitar um deles. É mais simples de implementar do que arquiteturas com filas dedicadas ou partições temporais, e suficiente para o volume esperado em ambiente acadêmico.
 
@@ -337,7 +359,11 @@ Em ambientes de produção, recomenda-se que canais de tempo real (como WebSocke
 
 ---
 
+
+
 ## 4. Funcionalidades Essenciais
+
+
 
 ### 4.1 Usuários e autenticação
 
@@ -377,13 +403,13 @@ Essas escolhas ajudam a criar um modelo mental de segurança em camadas: mesmo q
 
 O módulo de anúncios e catálogo é responsável por:
 
-**CRUD de `Anuncio`:**
+**CRUD de** `Anuncio`**:**
 
 - criar novo anúncio (vendedor autenticado);
 - editar anúncio (somente o dono, enquanto não houver venda/leilão ativo);
 - inativar anúncio (por exemplo, após venda ou por opção do vendedor).
 
-**Atributos de `Anuncio`:**
+**Atributos de** `Anuncio`**:**
 
 - título, descrição, categoria;
 - preço de referência;
@@ -406,6 +432,8 @@ O domínio deve conter regras básicas, como:
 
 - Não permitir que um anúncio inativo seja usado para criar novos leilões.
 - Não permitir edição de campos críticos (por exemplo, descrição, preço de referência) depois que um leilão associado tenha recebido lances, para evitar “mudanças de escopo” durante uma disputa.
+
+
 
 ### 4.3 Leilões e lances
 
@@ -488,7 +516,11 @@ Essas rotas não são estritamente necessárias para o MVP, mas são um excelent
 
 ---
 
+
+
 ## 5. Aspectos Comportamentais e UX
+
+
 
 ### 5.1 Perfis de comportamento
 
@@ -588,7 +620,11 @@ Nesse sentido, a API não é apenas uma camada técnica; ela é parte do design 
 
 ---
 
+
+
 ## 6. Críticas, Desafios e Recomendações
+
+
 
 ### 6.1 Desafios técnicos
 
@@ -613,6 +649,8 @@ Alguns desafios técnicos relevantes para o projeto:
 
 - Ao evoluir o sistema, é fácil quebrar contratos de API (nomes de campos, formatos) sem perceber, principalmente em ambientes sem front acoplado. É recomendável usar a especificação OpenAPI como “fonte da verdade” e manter uma verificação de compatibilidade mínima.
 
+
+
 ### 6.2 Desafios funcionais
 
 **Modelagem precisa de estados:**
@@ -634,6 +672,8 @@ Alguns desafios técnicos relevantes para o projeto:
 
 - Cada nova regra (por exemplo, extensão automática de tempo se houver lances nos últimos X segundos – “anti-sniping”) traz valor, mas aumenta a complexidade. Em projetos reais, mecanismos anti-“sniping” e de extensão de tempo são comuns (*Building a Real-Time Auction Platform*); aqui, é preciso avaliar se isso cabe no escopo acadêmico ou se deve ser tratado como incremento opcional.
 
+
+
 ### 6.3 Críticas ao escopo e trade-offs
 
 Alguns trade-offs a considerar:
@@ -653,6 +693,8 @@ Alguns trade-offs a considerar:
 
 - Sistemas reais lidam com uma gama de fraudes: não entrega, não pagamento, chargebacks, uso de dados roubados de cartão, entre outros (*How to safely use online auction sites*).
 - No projeto acadêmico, é suficiente concentrar-se em prevenção de abusos dentro da plataforma (por exemplo, impedir lances repetitivos suspeitos ou uso de múltiplas contas pelo mesmo usuário), deixando modelos de detecção automatizada (como machine learning) fora de escopo.
+
+
 
 ### 6.4 Recomendações de design
 
@@ -683,20 +725,26 @@ Com base no exposto, algumas recomendações práticas:
 
 ---
 
+
+
 ## 7. Roadmap, Backlog e Métricas Acadêmicas
+
+
 
 ### 7.1 Roadmap de implementação
 
 Um roadmap iterativo razoável é:
 
-| Fase | Foco principal | Entregáveis |
-|---|---|---|
-| 1 | Domínio e testes unitários | Entidades, estados de leilão, regras de lance + testes |
-| 2 | Repositórios e banco de dados | Interfaces de repositório, modelos ORM, migrations |
-| 3 | Casos de uso | `CriarAnuncio`, `IniciarLeilao`, `DarLance`, `EncerrarLeilao` com testes de orquestração |
-| 4 | API REST | Rotas Flask, autenticação JWT, documentação via OpenAPI |
-| 5 | Jobs de encerramento | Job com APScheduler para encerrar leilões automaticamente |
-| 6 | Testes de integração e hardening | Testes de API, testes de concorrência em lances, ajustes de logging e erros |
+
+| Fase | Foco principal                   | Entregáveis                                                                              |
+| ---- | -------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1    | Domínio e testes unitários       | Entidades, estados de leilão, regras de lance + testes                                   |
+| 2    | Repositórios e banco de dados    | Interfaces de repositório, modelos ORM, migrations                                       |
+| 3    | Casos de uso                     | `CriarAnuncio`, `IniciarLeilao`, `DarLance`, `EncerrarLeilao` com testes de orquestração |
+| 4    | API REST                         | Rotas Flask, autenticação JWT, documentação via OpenAPI                                  |
+| 5    | Jobs de encerramento             | Job com APScheduler para encerrar leilões automaticamente                                |
+| 6    | Testes de integração e hardening | Testes de API, testes de concorrência em lances, ajustes de logging e erros              |
+
 
 Cada fase deve incluir uma pequena revisão técnica e, quando possível, uma demonstração para a turma/professor, reforçando o ciclo de feedback rápido.
 
@@ -754,6 +802,8 @@ Para avaliar o sucesso do projeto no contexto acadêmico, algumas métricas (qua
 Essas métricas ajudam não só na nota final, mas também na reflexão do grupo sobre o próprio processo de desenvolvimento.
 
 ---
+
+
 
 ## Conclusão
 
