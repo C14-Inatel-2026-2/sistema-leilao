@@ -29,7 +29,7 @@ class PapelUsuario(str, Enum):
 
 
 _EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-SENHA_TAMANHO_MINIMO = 8
+SENHA_TAMANHO_MINIMO = 12
 
 
 @dataclass
