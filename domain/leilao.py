@@ -6,32 +6,20 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID, uuid4
 
+# Lance e as excecoes continuam importaveis a partir daqui (from domain.leilao import Lance).
+from domain.exceptions import (
+    EstadoLeilaoInvalidoError,
+    LanceInvalidoError,
+    LeilaoInvalidoError,
+)
+from domain.lance import Lance
+
 class StatusLeilao (str, Enum):
     AGENDADO = "AGENDADO"
     ABERTO = "ABERTO"
     ENCERRADO = "ENCERRADO"
     PAGO = "PAGO"
     CANCELADO = "CANCELADO"
-
-class LeilaoInvalidoError(ValueError):
-    """Dados de criacao do leilao invalidos (preco negativo, datas incorretas, etc.)."""
-    pass
-
-class EstadoLeilaoInvalidoError(ValueError):
-    """Tentativa de transicao de estado proibida (ex: lance em leilao cancelado)."""
-    pass
-
-class LanceInvalidoError(ValueError):
-    """Lance rejeitado por regras de negocio (valor baixo, vendedor dando lance, etc.)."""
-    pass
-
-@dataclass
-class Lance:
-    leilao_id: UUID
-    comprador_id: UUID | int
-    valor: Decimal
-    id: UUID = field(default_factory=uuid4)
-    criado_em: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 @dataclass
 class Leilao:
@@ -72,9 +60,10 @@ class Leilao:
         return max(self.lances, key=lambda x: x.valor)
 
     def valor_minimo_proximo_lance(self) -> Decimal:
-        if self.maior_lance() is None:
+        maior = self.maior_lance()
+        if maior is None:
             return self.preco_inicial
-        return self.maior_lance().valor + self.incremento_minimo
+        return maior.valor + self.incremento_minimo
 
     def abrir(self, momento: datetime | None = None) -> None:
         momento = momento or datetime.now(timezone.utc)
@@ -88,8 +77,11 @@ class Leilao:
         momento = momento or datetime.now(timezone.utc)
         if self.status != StatusLeilao.ABERTO:
             raise EstadoLeilaoInvalidoError("leilao nao esta aberto para lances, apenas possível no status aberto")
-        if momento < self.data_inicio or momento > self.data_final:
+        # Janela [inicio, fim): no instante data_final o leilao ja pode ser encerrado,
+        # entao ele nao pode mais aceitar lance - senao lance e encerramento disputam o mesmo instante.
+        if momento < self.data_inicio or momento >= self.data_final:
             raise LanceInvalidoError("nao e possivel fazer lances nesse periodo de tempo")
+        Lance.validar_valor(valor)
         if comprador_id == self.vendedor_id:
             raise LanceInvalidoError("o vendedor nao pode dar lances em seu proprio leilao.")
         minimo_exigido = self.valor_minimo_proximo_lance()

@@ -23,3 +23,23 @@ class AnuncioInvalidoError(DomainError):
 
 class CategoriaInvalidaError(DomainError):
     """Levantada quando os dados de uma Categoria violam uma regra de negocio."""
+
+
+# As excecoes de Leilao/Lance tambem herdam de ValueError para nao quebrar quem
+# ja as capturava assim quando viviam em domain/leilao.py.
+
+
+class LeilaoInvalidoError(DomainError, ValueError):
+    """Dados de criacao do leilao invalidos (preco negativo, datas incorretas, etc.)."""
+
+
+class EstadoLeilaoInvalidoError(DomainError, ValueError):
+    """Tentativa de transicao de estado proibida (ex: lance em leilao cancelado)."""
+
+
+class LanceInvalidoError(DomainError, ValueError):
+    """Lance rejeitado por regras de negocio (valor baixo, vendedor dando lance, etc.)."""
+
+
+class LeilaoNaoEncontradoError(DomainError):
+    """O leilao informado nao existe (a camada HTTP traduz para 404)."""
