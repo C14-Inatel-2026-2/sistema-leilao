@@ -324,6 +324,7 @@ Caminho mínimo para demonstrar o fluxo completo **criar leilão → dar lance �
 - Celery + Redis (substituir APScheduler)
 - Notificações por e-mail
 - Frontend
+- Unificar hierarquia de exceções de domínio (`chore/domain-exception-hierarchy`) — ver [`hierarquia-excecoes.md`](hierarquia-excecoes.md)
 
 Com esse recorte, é possível validar as regras críticas de lance, concorrência e encerramento automático antes de expandir o marketplace.
 
@@ -333,5 +334,6 @@ Com esse recorte, é possível validar as regras críticas de lance, concorrênc
 
 - [Responsabilidades da equipe](responsabilidades-equipe.md) — domínios, guardiões e tarefas por integrante
 - [Arquitetura](arquitetura.md) — camadas, domínio, eventos, concorrência
+- [Hierarquia de exceções](hierarquia-excecoes.md) — dívida: unificar `DomainError` vs `ValueError`
 - [Estrutura e stack](estrutura-e-stack.md) — árvore de diretórios, stack e fluxo de requisição
 - [README](../README.md) — visão do produto, regras de leilão e atores

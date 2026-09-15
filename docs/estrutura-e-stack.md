@@ -13,7 +13,8 @@ sistema-leilao/
 │   ├── anuncio.py
 │   ├── leilao.py
 │   ├── lance.py
-│   └── categoria.py
+│   ├── categoria.py
+│   └── exceptions.py            # DomainError e subclasses (ver hierarquia-excecoes.md)
 │
 ├── use_cases/                  # Casos de uso da aplicação
 │   ├── criar_anuncio.py
@@ -47,7 +48,8 @@ sistema-leilao/
 │
 ├── docs/
 │   ├── arquitetura.md
-│   └── estrutura-e-stack.md
+│   ├── estrutura-e-stack.md
+│   └── hierarquia-excecoes.md  # dívida: unificar DomainError
 │
 ├── Jenkinsfile                 # Pipeline de CI/CD
 ├── pyproject.toml              # Dependências (Poetry)
@@ -134,4 +136,4 @@ Ordem sugerida para evitar bloqueios entre módulos:
 5. **`infra/jobs/`** — encerramento automático
 6. **`tests/`** — unitários de domínio primeiro, integração depois
 
-Detalhes arquiteturais em [`arquitetura.md`](arquitetura.md).
+Detalhes arquiteturais em [`arquitetura.md`](arquitetura.md). Dívida da hierarquia de exceções em [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
