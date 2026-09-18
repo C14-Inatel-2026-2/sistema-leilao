@@ -6,6 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID, uuid4
 
+from domain.exceptions import AnuncioInvalidoError
 
 class StatusAnuncio(str, Enum):
     ATIVO = "ATIVO"

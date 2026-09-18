@@ -35,3 +35,6 @@ class LanceInvalidoError(DomainError):
 
 class AnuncioInvalidoError(DomainError):
     """Levantada quando os dados de um Anuncio violam uma regra de negocio."""
+
+class CategoriaInvalidaError(DomainError):
+    """Levantada quando os dados de uma Categoria violam uma regra de negocio."""
