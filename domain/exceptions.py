@@ -32,3 +32,6 @@ class EstadoLeilaoInvalidoError(DomainError):
 
 class LanceInvalidoError(DomainError):
     """Lance rejeitado por regras de negocio (valor baixo, vendedor dando lance, etc.)."""
+
+class AnuncioInvalidoError(DomainError):
+    """Levantada quando os dados de um Anuncio violam uma regra de negocio."""

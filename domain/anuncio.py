@@ -18,10 +18,6 @@ class TipoAnuncio(str, Enum):
     LEILAO = "LEILAO"
 
 
-class AnuncioError(ValueError):
-    """Erro de regra de negócio do anúncio."""
-
-
 @dataclass
 class Anuncio:
     titulo: str
