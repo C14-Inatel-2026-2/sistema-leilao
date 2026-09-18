@@ -26,10 +26,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-
-class LanceInvalidoError(ValueError):
-    """Lance rejeitado por regras de negocio (valor baixo, vendedor dando lance, etc.)."""
-    pass
+from domain.exceptions import LanceInvalidoError
 
 
 @dataclass(frozen=True)

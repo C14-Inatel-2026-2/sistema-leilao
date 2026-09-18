@@ -5,9 +5,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from uuid import UUID, uuid4
-
-# A entidade Lance e a excecao de lance agora vivem em domain/lance.py.
-from domain.lance import Lance, LanceInvalidoError
+from domain.lance import Lance
+from domain.exceptions import LeilaoInvalidoError, EstadoLeilaoInvalidoError, LanceInvalidoError
 
 class StatusLeilao (str, Enum):
     AGENDADO = "AGENDADO"
@@ -15,14 +14,6 @@ class StatusLeilao (str, Enum):
     ENCERRADO = "ENCERRADO"
     PAGO = "PAGO"
     CANCELADO = "CANCELADO"
-
-class LeilaoInvalidoError(ValueError):
-    """Dados de criacao do leilao invalidos (preco negativo, datas incorretas, etc.)."""
-    pass
-
-class EstadoLeilaoInvalidoError(ValueError):
-    """Tentativa de transicao de estado proibida (ex: lance em leilao cancelado)."""
-    pass
 
 @dataclass
 class Leilao:
@@ -79,9 +70,6 @@ class Leilao:
         momento = momento or datetime.now(timezone.utc)
         if self.status != StatusLeilao.ABERTO:
             raise EstadoLeilaoInvalidoError("leilao nao esta aberto para lances, apenas possível no status aberto")
-        # Janela [inicio, fim): no instante data_final o leilao ja pode ser encerrado
-        # (ver abrir/encerrar), entao ele nao aceita mais lance - senao lance e
-        # encerramento disputam o mesmo instante.
         if momento < self.data_inicio or momento >= self.data_final:
             raise LanceInvalidoError("nao e possivel fazer lances nesse periodo de tempo")
         Lance.validar_valor(valor)

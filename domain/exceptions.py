@@ -23,3 +23,12 @@ class AnuncioInvalidoError(DomainError):
 
 class CategoriaInvalidaError(DomainError):
     """Levantada quando os dados de uma Categoria violam uma regra de negocio."""
+
+class LeilaoInvalidoError(DomainError):
+    """Dados de criacao do leilao invalidos (preco negativo, datas incorretas, etc.)."""
+
+class EstadoLeilaoInvalidoError(DomainError):
+    """Tentativa de transicao de estado proibida (ex: lance em leilao cancelado)."""
+
+class LanceInvalidoError(DomainError):
+    """Lance rejeitado por regras de negocio (valor baixo, vendedor dando lance, etc.)."""
