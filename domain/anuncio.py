@@ -6,6 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID, uuid4
 
+from domain.exceptions import AnuncioInvalidoError
 
 class StatusAnuncio(str, Enum):
     ATIVO = "ATIVO"
@@ -16,10 +17,6 @@ class StatusAnuncio(str, Enum):
 class TipoAnuncio(str, Enum):
     VENDA_DIRETA = "VENDA_DIRETA"
     LEILAO = "LEILAO"
-
-
-class AnuncioError(ValueError):
-    """Erro de regra de negócio do anúncio."""
 
 
 @dataclass
