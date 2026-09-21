@@ -4,9 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-
-class CategoriaError(ValueError):
-    """Erro de regra de negócio da categoria."""
+from domain.exceptions import CategoriaInvalidaError
 
 
 @dataclass
