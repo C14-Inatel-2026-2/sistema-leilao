@@ -26,7 +26,7 @@ class Leilao:
     id: UUID = field(default_factory=uuid4)
     status: StatusLeilao = StatusLeilao.AGENDADO
     lances: list[Lance] = field(default_factory=list)
-    vencedor_id: UUID | int | None = None
+    vencedor_id: UUID | None = None
     valor_arremate: Decimal | None = None
     criado_em: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -66,7 +66,7 @@ class Leilao:
             raise EstadoLeilaoInvalidoError("nao e possivel abrir o leilão fora da janela de tempo")
         self.status = StatusLeilao.ABERTO
 
-    def validar_lance(self,comprador_id: UUID | int,valor: Decimal,momento: datetime | None = None) -> None:
+    def validar_lance(self,comprador_id: UUID,valor: Decimal,momento: datetime | None = None) -> None:
         momento = momento or datetime.now(timezone.utc)
         if self.status != StatusLeilao.ABERTO:
             raise EstadoLeilaoInvalidoError("leilao nao esta aberto para lances, apenas possível no status aberto")
@@ -79,7 +79,7 @@ class Leilao:
         if valor < minimo_exigido:
             raise LanceInvalidoError("o valor inserido e menor que o minmo exigido, verifique o valor")
 
-    def receber_lance(self, comprador_id: UUID | int, valor: Decimal, momento: datetime | None = None) -> Lance:
+    def receber_lance(self, comprador_id: UUID, valor: Decimal, momento: datetime | None = None) -> Lance:
         momento = momento or datetime.now(timezone.utc)
         self.validar_lance(comprador_id=comprador_id, valor=valor, momento=momento)
         novo_lance = Lance(

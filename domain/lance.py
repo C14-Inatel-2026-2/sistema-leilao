@@ -32,7 +32,7 @@ from domain.exceptions import LanceInvalidoError
 @dataclass(frozen=True)
 class Lance:
     leilao_id: UUID
-    comprador_id: UUID | int
+    comprador_id: UUID
     valor: Decimal
     id: UUID = field(default_factory=uuid4)
     criado_em: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
