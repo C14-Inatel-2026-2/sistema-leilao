@@ -39,11 +39,11 @@ class Anuncio:
 
     def _validar_campos_basicos(self) -> None:
         if not self.titulo or not self.titulo.strip():
-            raise AnuncioError("titulo obrigatorio")
+            raise AnuncioInvalidoError("titulo obrigatorio")
         if not self.descricao or not self.descricao.strip():
-            raise AnuncioError("descricao obrigatoria")
+            raise AnuncioInvalidoError("descricao obrigatoria")
         if self.preco_referencia <= 0:
-            raise AnuncioError("preco_referencia deve ser positivo")
+            raise AnuncioInvalidoError("preco_referencia deve ser positivo")
 
     def esta_ativo(self) -> bool:
         return self.status == StatusAnuncio.ATIVO
@@ -57,7 +57,7 @@ class Anuncio:
 
     def associar_leilao(self, leilao_id: UUID) -> None:
         if not self.pode_iniciar_leilao():
-            raise AnuncioError("anuncio nao elegivel para leilao")
+            raise AnuncioInvalidoError("anuncio nao elegivel para leilao")
         self.leilao_atual_id = leilao_id
         self.tipo = TipoAnuncio.LEILAO
 
@@ -77,7 +77,7 @@ class Anuncio:
         leilao_com_lances: bool = False,
     ) -> None:
         if not self.pode_editar(leilao_com_lances=leilao_com_lances):
-            raise AnuncioError("anuncio nao pode ser editado")
+            raise AnuncioInvalidoError("anuncio nao pode ser editado")
         if titulo is not None:
             self.titulo = titulo
         if descricao is not None:
@@ -88,10 +88,10 @@ class Anuncio:
 
     def inativar(self) -> None:
         if self.status == StatusAnuncio.VENDIDO:
-            raise AnuncioError("anuncio vendido nao pode ser inativado")
+            raise AnuncioInvalidoError("anuncio vendido nao pode ser inativado")
         self.status = StatusAnuncio.INATIVO
 
     def marcar_vendido(self) -> None:
         if not self.esta_ativo():
-            raise AnuncioError("apenas anuncio ativo pode ser vendido")
+            raise AnuncioInvalidoError("apenas anuncio ativo pode ser vendido")
         self.status = StatusAnuncio.VENDIDO

@@ -21,7 +21,7 @@ class Categoria:
 
     def _validar_campos_basicos(self) -> None:
         if not self.nome or not self.nome.strip():
-            raise CategoriaError("nome obrigatorio")
+            raise CategoriaInvalidaError("nome obrigatorio")
         self.nome = self.nome.strip()
 
     def esta_ativa(self) -> bool:
