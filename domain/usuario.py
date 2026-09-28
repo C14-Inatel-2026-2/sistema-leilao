@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from uuid import UUID, uuid4
 import re
 
 from domain.exceptions import UsuarioInvalidoError
@@ -38,7 +38,7 @@ class Usuario:
     email: str
     senha_hash: str
     papel: PapelUsuario
-    id: Optional[int] = None
+    id: UUID = field(default_factory=uuid4)
     ativo: bool = True
     criado_em: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
