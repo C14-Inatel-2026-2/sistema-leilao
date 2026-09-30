@@ -17,6 +17,10 @@ class UsuarioInvalidoError(DomainError):
     """Levantada quando os dados de um Usuario violam uma regra de negocio."""
 
 
+class EmailJaCadastradoError(DomainError):
+    """Levantada ao cadastrar um Usuario com email que ja pertence a outra conta."""
+
+
 class AnuncioInvalidoError(DomainError):
     """Levantada quando os dados de um Anuncio violam uma regra de negocio."""
 
