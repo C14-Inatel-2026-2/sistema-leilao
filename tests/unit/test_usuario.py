@@ -17,6 +17,7 @@ def usuario_valido(**overrides):
         email="teo@example.com",
         senha_hash="hash-fake-vindo-da-infra",
         papel=PapelUsuario.COMPRADOR,
+        ativo=True
     )
     dados.update(overrides)
     return Usuario(**dados)
@@ -32,12 +33,13 @@ def usuario_valido(**overrides):
     ids=["vendedor-ativo", "vendedor-desativado", "comprador"],
 )
 def test_apenas_vendedor_ativo_pode_criar_anuncio(papel, ativo, esperado):
-    usuario = usuario_valido(papel=papel)
-    if not ativo:
-        usuario.desativar()
-
+    usuario = usuario_valido(papel=papel, ativo=ativo)
     assert usuario.pode_criar_anuncio() is esperado
 
+def test_funcao_desativar():
+    usuario = usuario_valido(ativo=True)
+    usuario.desativar()
+    assert usuario.ativo is False
 
 @pytest.mark.parametrize(
     "senha",
