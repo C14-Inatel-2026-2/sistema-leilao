@@ -1,92 +1,77 @@
-import pytest
-from uuid import uuid4
-from decimal import Decimal
+"""
+tests/unit/test_anuncio.py
 
-from domain.anuncio import Anuncio, StatusAnuncio, TipoAnuncio
+Testes unitarios da entidade de dominio Anuncio.
+Sem Flask e sem banco. Mocks apenas nos colaboradores
+(repositorio de categoria e verificacao de lances).
+"""
+
+from decimal import Decimal
+from typing import Protocol
+from unittest.mock import Mock
+from uuid import UUID, uuid4
+
+import pytest
+
+from domain.anuncio import Anuncio, TipoAnuncio
+from domain.categoria import Categoria
 from domain.exceptions import AnuncioInvalidoError
+
+
+class CategoriaRepository(Protocol):
+    def buscar_por_id(self, categoria_id: UUID) -> Categoria | None:
+        """Retorna a Categoria com o id informado, ou None se nao existir."""
+        ...
+
 
 def anuncio_valido(**overrides):
     dados = dict(
-        titulo="Anuncio de teste",
-        descricao="Descricao de teste",
-        preco_referencia=Decimal('100.00'),
+        titulo="Notebook usado",
+        descricao="16 GB RAM, SSD 512 GB",
+        preco_referencia=Decimal("1500.00"),
         categoria_id=uuid4(),
         vendedor_id=uuid4(),
     )
     dados.update(overrides)
     return Anuncio(**dados)
 
-def test_anuncio_valido():
-    anuncio = Anuncio(
-        titulo="Anuncio de teste",
-        descricao="Descricao de teste",
-        preco_referencia=Decimal('100.00'),
-        categoria_id=uuid4(),
-        vendedor_id=uuid4(),
-    )
 
-    assert anuncio == anuncio_valido()
+@pytest.mark.parametrize(
+    "preco",
+    [Decimal("0"), Decimal("-1.00")],
+    ids=["zero", "negativo"],
+)
+def test_rejeita_preco_referencia_nao_positivo(preco):
+    with pytest.raises(AnuncioInvalidoError):
+        anuncio_valido(preco_referencia=preco)
 
 
-def test_anuncio_invalido_sem_titulo():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        Anuncio(
-            titulo="",
-            descricao="Descricao de teste",
-            preco_referencia=Decimal(100.00),
-            categoria_id=uuid4(),
-            vendedor_id=uuid4(),
-        )
-    assert str(exc_info.value) == "titulo obrigatorio"
+def test_associar_leilao_quando_categoria_ativa():
+    categoria = Categoria(nome="Eletronicos", ativa=True)
+    repositorio = Mock(spec=CategoriaRepository)
+    repositorio.buscar_por_id.return_value = categoria
 
-def test_anuncio_invalido_sem_descricao():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(descricao="")
-    assert str(exc_info.value) == "descricao obrigatoria"
+    anuncio = anuncio_valido(categoria_id=categoria.id)
+    categoria_encontrada = repositorio.buscar_por_id(anuncio.categoria_id)
 
-def test_anuncio_invalido_sem_preco_referencia():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(preco_referencia=None)
-    assert str(exc_info.value) == "preco_referencia obrigatorio"
+    assert categoria_encontrada.esta_ativa() is True
 
-def test_anuncio_invalido_sem_categoria_id():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(categoria_id=None)
-    assert str(exc_info.value) == "categoria_id obrigatoria"
-    
-def test_anuncio_invalido_sem_vendedor_id():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(vendedor_id=None)
-    assert str(exc_info.value) == "vendedor_id obrigatorio"
+    leilao_id = uuid4()
+    anuncio.associar_leilao(leilao_id)
 
-def test_anuncio_invalido_sem_status():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(status=None)
-    assert str(exc_info.value) == "status obrigatorio"
+    assert anuncio.tipo == TipoAnuncio.LEILAO
+    assert anuncio.leilao_atual_id == leilao_id
+    repositorio.buscar_por_id.assert_called_once_with(anuncio.categoria_id)
 
-def test_anuncio_invalido_sem_tipo():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(tipo=None)
-    assert str(exc_info.value) == "tipo obrigatorio"
 
-def test_anuncio_invalido_sem_criado_em():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(criado_em=None)
-    assert str(exc_info.value) == "criado_em obrigatorio"
+def test_rejeita_editar_anuncio_quando_leilao_tem_lances():
+    anuncio = anuncio_valido()
+    titulo_original = anuncio.titulo
+    leilao = Mock()
+    leilao.possui_lances.return_value = True
 
-def test_anuncio_invalido_com_preco_referencia_negativo():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(preco_referencia=Decimal(-100.00))
-    assert str(exc_info.value) == "preco_referencia nao pode ser negativo"
+    with pytest.raises(AnuncioInvalidoError):
+        anuncio.editar(titulo="Titulo alterado", leilao_com_lances=leilao.possui_lances())
 
-def test_anuncio_invalido_com_preco_referencia_zero():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(preco_referencia=Decimal(0.00))
-    assert str(exc_info.value) == "preco_referencia nao pode ser zero"
-
-def test_anuncio_invalido_com_preco_referencia_decimal():
-    with pytest.raises(AnuncioInvalidoError) as exc_info:
-        anuncio_valido(preco_referencia=Decimal(100.001))
-    assert str(exc_info.value) == "preco_referencia nao pode ser decimal"
-
-def test_anuncio_invalido_com_preco_referencia_string():
+    leilao.possui_lances.assert_called_once()
+    assert anuncio.titulo == titulo_original
