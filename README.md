@@ -81,6 +81,7 @@ Ferramentas sugeridas para teste manual: Postman, Insomnia ou `curl`.
 ## Documentação técnica
 
 - [Arquitetura](docs/arquitetura.md) — camadas, domínio, eventos, concorrência
+- [Hierarquia de exceções](docs/hierarquia-excecoes.md) — unificar `DomainError` (dívida técnica)
 - [Estrutura e stack](docs/estrutura-e-stack.md) — árvore de diretórios e tecnologias
 - [Próximos passos](docs/proximos-passos.md) — roteiro de implementação e ordem de PRs
 - [Arquivamento de conversas com IA](docs/arquivamento-conversas-ia.md) — exportação e publicação de chats com IA
