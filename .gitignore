@@ -34,6 +34,7 @@ ENV/
 .coverage
 .coverage.*
 htmlcov/
+reports/
 .tox/
 .nox/
 
