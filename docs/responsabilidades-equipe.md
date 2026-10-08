@@ -4,6 +4,8 @@ Distribuição de domínios, papéis e tarefas entre os integrantes do **sistema
 
 Referências: [`proximos-passos.md`](proximos-passos.md) · [`arquitetura.md`](arquitetura.md) · [`estrutura-e-stack.md`](estrutura-e-stack.md)
 
+**Estado (out/2026):** domínio e testes unitários feitos; `CadastrarUsuario` existe; CI (`Dockerfile`/`Jenkinsfile`) em `dev`. Próximo gargalo: models, migrations e repositories. Roteiro atualizado em [`proximos-passos.md`](proximos-passos.md).
+
 ---
 
 ## Visão Geral
@@ -36,11 +38,12 @@ Responsável por todo o ciclo de vida do usuário: cadastro, autenticação, aut
 | API | Proteção de rotas com `@jwt_required()` e claims de papel | `infra/flask_app/` |
 | Testes | Testes unitários de `Usuario` e testes de integração de auth | `tests/unit/`, `tests/integration/` |
 
-### Branches sugeridas
+### Branches
 
 ```text
-feature/domain-usuario
-feature/infra-db-model-usuario
+feature/domain-usuario              # feito
+feature/use-case-cadastrar-usuario  # feito
+feature/infra-db-model-usuario      # próximo
 feature/flask-auth-jwt
 ```
 
@@ -72,11 +75,11 @@ Responsável pela criação e gestão de anúncios, categorias e pela configura�
 | API | Endpoints de CRUD de anúncios e listagem com filtros | `infra/flask_app/controllers/`, `infra/flask_app/routes/` |
 | Testes | Testes unitários das entidades e de integração dos casos de uso de catálogo | `tests/unit/`, `tests/integration/` |
 
-### Branches sugeridas
+### Branches
 
 ```text
-feature/domain-entidades-catalogo
-feature/infra-db-models-catalogo
+feature/domain-entidades-catalogo       # feito
+feature/infra-db-models-catalogo        # próximo
 feature/adapters-repositories-catalogo
 feature/use-case-criar-anuncio
 feature/flask-routes-catalogo
@@ -112,11 +115,11 @@ Responsável pela lógica de lances (validação, concorrência, lock transacion
 | API | Endpoint `POST /leiloes/{id}/lances` e `GET /leiloes/{id}/lances` | `infra/flask_app/controllers/`, `infra/flask_app/routes/` |
 | Testes | Testes unitários de regras de lance e testes de integração com lock | `tests/unit/`, `tests/integration/` |
 
-### Branches sugeridas
+### Branches
 
 ```text
-feature/domain-lance
-feature/use-case-dar-lance
+feature/domain-lance              # feito
+feature/use-case-dar-lance        # próximo (abrir branch nova a partir de `dev`; a remota está desatualizada)
 feature/use-case-encerrar-leilao
 feature/adapters-events
 feature/jobs-leilao
@@ -151,10 +154,11 @@ Responsável pelos fluxos após o encerramento do leilão: registro de históric
 | API | Endpoints futuros de histórico e relatórios de auditoria | `infra/flask_app/` |
 | Testes | Testes de integração dos handlers de eventos e fluxos pós-leilão | `tests/integration/` |
 
-### Branches sugeridas
+### Branches
 
 ```text
-feature/adapters-events-handlers
+chore/ci-jenkinsfile                 # feito (Dockerfile + Jenkinsfile em `dev`)
+feature/adapters-events-handlers     # próximo
 feature/infra-db-historico-auditoria
 feature/flask-routes-historico
 ```
