@@ -130,9 +130,9 @@ Em ambos os casos, o job **não contém regra de negócio** — apenas dispara c
 
 ## Exceções de domínio
 
-O domínio deve sinalizar violação de regra com uma hierarquia única (`DomainError` e subclasses), para a API mapear tudo a um payload `{ "codigo", "mensagem" }` sem tratar `ValueError` genérico.
+O domínio sinaliza violação de regra com uma hierarquia única (`DomainError` e subclasses em `domain/exceptions.py`). Quando a API existir, um único `except DomainError` mapeia para payload `{ "codigo", "mensagem" }` sem tratar `ValueError` genérico.
 
-Isso **ainda não está unificado**. Inventário as-is, alvo e checklist do PR futuro: [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
+**Base unificada.** Códigos estáveis (`codigo`) ainda são incremento da camada HTTP: [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
 
 ---
 

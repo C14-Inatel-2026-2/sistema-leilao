@@ -1,6 +1,8 @@
 # Estrutura de Diretórios e Stack
 
-Proposta de organização do repositório e tecnologias adotadas. O código ainda não existe — esta é a estrutura alvo para o desenvolvimento.
+Organização do repositório e tecnologias adotadas.
+
+**Estado (out/2026):** `domain/` e testes unitários estão implementados; `use_cases/cadastrar_usuario.py` existe. `adapters/` e `infra/` ainda são scaffolding vazio. O que falta, e em que ordem, está em [`proximos-passos.md`](proximos-passos.md).
 
 ---
 
@@ -17,10 +19,12 @@ sistema-leilao/
 │   └── exceptions.py            # DomainError e subclasses (ver hierarquia-excecoes.md)
 │
 ├── use_cases/                  # Casos de uso da aplicação
-│   ├── criar_anuncio.py
-│   ├── iniciar_leilao.py
-│   ├── dar_lance.py
-│   └── encerrar_leilao.py
+│   ├── interfaces.py           # Protocols (UsuarioRepository, PasswordHasher)
+│   ├── cadastrar_usuario.py    # implementado
+│   ├── criar_anuncio.py        # previsto
+│   ├── iniciar_leilao.py       # previsto
+│   ├── dar_lance.py            # previsto
+│   └── encerrar_leilao.py      # previsto
 │
 ├── adapters/
 │   ├── repositories/           # Interfaces + implementações concretas
@@ -49,8 +53,9 @@ sistema-leilao/
 ├── docs/
 │   ├── arquitetura.md
 │   ├── estrutura-e-stack.md
-│   └── hierarquia-excecoes.md  # dívida: unificar DomainError
+│   └── hierarquia-excecoes.md  # DomainError unificado; códigos HTTP pendentes
 │
+├── Dockerfile                  # Imagem de build/teste (Poetry + pytest)
 ├── Jenkinsfile                 # Pipeline de CI/CD
 ├── pyproject.toml              # Dependências (Poetry)
 ├── docker-compose.yml          # PostgreSQL (+ Redis, se Celery)
@@ -91,7 +96,7 @@ sistema-leilao/
 
 ## Infraestrutura local
 
-O `docker-compose.yml` previsto sobe os serviços de apoio:
+O `docker-compose.yml` sobe os serviços de apoio:
 
 ```text
 docker-compose up
@@ -127,13 +132,12 @@ Resposta HTTP 201 + lance criado
 
 ## Próximos passos de implementação
 
-Ordem sugerida para evitar bloqueios entre módulos:
+1. **`domain/`** — entidades e regras de lance — **feito**
+2. **`infra/db/`** — models SQLAlchemy e migrations — **próximo**
+3. **`adapters/repositories/`** — interfaces e implementações SQLAlchemy
+4. **`use_cases/`** — casos de uso restantes (`CriarAnuncio`, `DarLance`, `EncerrarLeilao`, …)
+5. **`infra/flask_app/`** — rotas e autenticação
+6. **`infra/jobs/`** — encerramento automático
+7. **`tests/integration/`** — persistência e API, depois dos repositories
 
-1. **`domain/`** — entidades e regras de lance (base para tudo)
-2. **`adapters/repositories/`** — interfaces e implementações SQLAlchemy
-3. **`use_cases/`** — casos de uso sobre o domínio
-4. **`infra/flask_app/`** — rotas e autenticação
-5. **`infra/jobs/`** — encerramento automático
-6. **`tests/`** — unitários de domínio primeiro, integração depois
-
-Detalhes arquiteturais em [`arquitetura.md`](arquitetura.md). Dívida da hierarquia de exceções em [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
+Roteiro completo em [`proximos-passos.md`](proximos-passos.md). Hierarquia de exceções em [`hierarquia-excecoes.md`](hierarquia-excecoes.md). Detalhes arquiteturais em [`arquitetura.md`](arquitetura.md).
