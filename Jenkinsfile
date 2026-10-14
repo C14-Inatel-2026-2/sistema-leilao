@@ -26,6 +26,28 @@ pipeline {
                 '''
             }
         }
+
+        stage('Coverage Report') {
+            steps {
+                // Le o coverage.xml gerado no stage Test e publica no Jenkins.
+                // Os caminhos no XML sao relativos a cada pacote, por isso as
+                // pastas de codigo-fonte sao listadas uma a uma.
+                recordCoverage(
+                    tools: [[parser: 'COBERTURA', pattern: 'reports/coverage.xml']],
+                    id: 'coverage',
+                    name: 'Cobertura de Testes',
+                    sourceDirectories: [
+                        [path: 'domain'],
+                        [path: 'use_cases'],
+                        [path: 'adapters'],
+                        [path: 'infra'],
+                    ],
+                    qualityGates: [
+                        [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'UNSTABLE'],
+                    ]
+                )
+            }
+        }
     }
 
     post {
