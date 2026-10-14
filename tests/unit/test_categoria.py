@@ -2,7 +2,7 @@
 tests/unit/test_categoria.py
 
 Testes unitarios da entidade de dominio Categoria.
-Sem Flask, sem banco, sem mocks - apenas o dominio isolado.
+Sem framework web, sem banco, sem mocks - apenas o dominio isolado.
 """
 
 from domain.categoria import Categoria

@@ -2,7 +2,7 @@
 tests/unit/test_usuario.py
 
 Testes unitarios da entidade de dominio Usuario.
-Sem Flask, sem banco, sem mocks - apenas o dominio isolado.
+Sem framework web, sem banco, sem mocks - apenas o dominio isolado.
 """
 
 import pytest
