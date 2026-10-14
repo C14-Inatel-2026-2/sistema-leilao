@@ -1,6 +1,6 @@
 # Hierarquia de exceções de domínio
 
-**Status:** base unificada. Todas as violações de negócio herdam de `DomainError` em `domain/exceptions.py` (PRs #10–#12). O incremento que falta é o payload HTTP `{ "codigo", "mensagem" }` com códigos estáveis quando as rotas existirem.
+**Status:** base unificada. Todas as violações de negócio herdam de `DomainError` em `domain/exceptions.py` (PRs #10–#12). O incremento que falta é o payload HTTP `{ "codigo", "mensagem" }` quando a API existir.
 
 Alinhado a [`must-read.md`](must-read.md) (seções 3.1, 6.1 e 6.4).
 
@@ -8,14 +8,14 @@ Alinhado a [`must-read.md`](must-read.md) (seções 3.1, 6.1 e 6.4).
 
 ## Por que uma base comum
 
-A infraestrutura (FastAPI) precisa distinguir **violação de regra de negócio** de **bug técnico**. Com `DomainError`, o handler em `infra/api/app.py` faz:
+A infraestrutura (FastAPI) precisa distinguir **violação de regra de negócio** de **bug técnico**. Com `DomainError`, um handler HTTP pode fazer:
 
 ```python
 @app.exception_handler(DomainError)
 def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
     return JSONResponse(
         status_code=400,
-        content={"codigo": getattr(exc, "codigo", "ERRO_DOMINIO"), "mensagem": str(exc)},
+        content={"codigo": ..., "mensagem": str(exc)},
     )
 ```
 
@@ -52,9 +52,9 @@ DomainError
 
 ---
 
-## Mapeamento HTTP (quando as rotas existirem)
+## Mapeamento HTTP (quando a API existir)
 
-Definido em [`must-read.md`](must-read.md) §6.4. A hierarquia torna o mapeamento trivial. A factory já registra o handler de `DomainError`.
+Definido em [`must-read.md`](must-read.md) §6.4. A hierarquia torna o mapeamento trivial.
 
 | Situação | HTTP | Exceção típica |
 |---|---|---|
@@ -70,7 +70,7 @@ Payload alvo:
 { "codigo": "ERRO_INCREMENTO_MINIMO", "mensagem": "..." }
 ```
 
-Códigos estáveis (`codigo`) ainda **não** existem nas exceções de domínio — só mensagens em português. O handler usa `"ERRO_DOMINIO"` como fallback. Códigos podem entrar como incremento (atributo de classe ou tabela na camada HTTP), sem reabrir a hierarquia.
+Códigos estáveis (`codigo`) ainda **não** existem — só mensagens em português. Podem entrar como incremento (atributo de classe ou tabela na camada HTTP), sem reabrir a hierarquia.
 
 Quando existir router de lance, um único `exception_handler(DomainError)` cobre incremento, janela e vendedor.
 
@@ -88,5 +88,5 @@ Quando existir router de lance, um único `exception_handler(DomainError)` cobre
 
 - [`must-read.md`](must-read.md) §3.1 (domínio sem frameworks), §6.1 (domínio livre de dependências), §6.4 (padrões de erro)
 - [`arquitetura.md`](arquitetura.md) — domínio isolado e testável
-- [`proximos-passos.md`](proximos-passos.md) — códigos HTTP estáveis ficam depois do MVP enxuto
-- Código: `domain/exceptions.py`, `infra/api/app.py`, `domain/usuario.py`, `domain/anuncio.py`, `domain/leilao.py`, `domain/lance.py`, `domain/categoria.py`
+- [`proximos-passos.md`](proximos-passos.md) — códigos HTTP ficam depois do MVP enxuto
+- Código: `domain/exceptions.py`, `domain/usuario.py`, `domain/anuncio.py`, `domain/leilao.py`, `domain/lance.py`, `domain/categoria.py`

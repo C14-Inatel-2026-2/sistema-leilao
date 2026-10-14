@@ -15,12 +15,10 @@ Contexto arquitetural em [`arquitetura.md`](arquitetura.md). Árvore de diretór
 | Camada | Situação |
 |---|---|
 | `domain/` | **Feito.** Entidades `Usuario`, `Categoria`, `Anuncio`, `Leilao`, `Lance` e hierarquia `DomainError` |
-| `tests/unit/` | **Feito.** Testes das entidades, de `CadastrarUsuario` e da factory FastAPI |
+| `tests/unit/` | **Feito.** Testes das entidades e de `CadastrarUsuario` |
 | `use_cases/` | **Parcial.** Só `CadastrarUsuario` (+ `interfaces.py` com `UsuarioRepository` e `PasswordHasher`) |
 | `adapters/` | **Vazio.** Pastas com `.gitkeep` |
-| `infra/api/` | **Parcial.** Factory `create_app`, handler de `DomainError`; routers/schemas vazios |
-| `infra/db/` | **Parcial.** `session.py` + Alembic (`alembic.ini`); models ainda vazios |
-| `infra/jobs/` | **Vazio.** Pasta com `.gitkeep` |
+| `infra/db/`, `infra/api/`, `infra/jobs/` | **Vazio.** Pastas com `.gitkeep` |
 | CI | **Feito.** `Dockerfile` + `Jenkinsfile` (build da imagem e `pytest` com relatórios) |
 | `docker-compose.yml` | **Feito.** PostgreSQL 16 + Redis (Redis só se Celery) |
 
@@ -53,7 +51,7 @@ Sem schema, não há persistência nem testes de integração.
 
 Pedro ([@phpaiva05](https://github.com/phpaiva05)) revisa todas as migrations (guardião de banco).
 
-Ordem dentro de cada PR: models (herdando `infra.db.session.Base`) → importar em `infra/db/migrations/env.py` → `alembic revision --autogenerate -m "..."` → `alembic upgrade head`.
+Ordem dentro de cada PR: `Base(DeclarativeBase)` + models → `alembic init` (uma vez) → `alembic revision --autogenerate -m "..."` → `alembic upgrade head`.
 
 Ao começar esta fase, copiar o ambiente local: `cp .env.example .env` e `docker compose up` (PostgreSQL).
 
@@ -84,7 +82,7 @@ Testes de integração em `tests/integration/` com PostgreSQL de teste, quando o
 
 ### 4. API FastAPI (`infra/api/`)
 
-Factory `create_app` (já existe), JWT via `Depends`, OpenAPI em `/docs`.
+Factory `create_app`, JWT via `Depends`, OpenAPI em `/docs`.
 
 | Quem | Método | Rota | Caso de uso |
 |---|---|---|---|

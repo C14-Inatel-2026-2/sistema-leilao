@@ -2,7 +2,7 @@
 
 Organização do repositório e tecnologias adotadas.
 
-**Estado (out/2026):** `domain/` e testes unitários estão implementados; `use_cases/cadastrar_usuario.py` existe. A camada HTTP é FastAPI (`infra/api/`); `adapters/` e models ORM ainda são scaffolding. O que falta, e em que ordem, está em [`proximos-passos.md`](proximos-passos.md).
+**Estado (out/2026):** `domain/` e testes unitários estão implementados; `use_cases/cadastrar_usuario.py` existe. `adapters/` e `infra/` ainda são scaffolding vazio. O que falta, e em que ordem, está em [`proximos-passos.md`](proximos-passos.md).
 
 ---
 
@@ -36,14 +36,11 @@ sistema-leilao/
 │       └── handlers/
 │
 ├── infra/
-│   ├── config.py               # pydantic-settings (DATABASE_URL, JWT, …)
 │   ├── api/                    # FastAPI: rotas, schemas, JWT, OpenAPI
 │   │   ├── app.py
-│   │   ├── dependencies.py
 │   │   ├── routers/
 │   │   └── schemas/
 │   ├── db/                     # Models SQLAlchemy e migrations Alembic
-│   │   ├── session.py
 │   │   ├── models/
 │   │   └── migrations/
 │   └── jobs/                   # Encerramento automático de leilões
@@ -58,7 +55,6 @@ sistema-leilao/
 │   ├── estrutura-e-stack.md
 │   └── hierarquia-excecoes.md  # DomainError unificado; códigos HTTP pendentes
 │
-├── alembic.ini                 # Migrations (Alembic)
 ├── Dockerfile                  # Imagem de build/teste (Poetry + pytest)
 ├── Jenkinsfile                 # Pipeline de CI/CD
 ├── pyproject.toml              # Dependências (Poetry)

@@ -132,9 +132,9 @@ Em ambos os casos, o job **não contém regra de negócio** — apenas dispara c
 
 ## Exceções de domínio
 
-O domínio sinaliza violação de regra com uma hierarquia única (`DomainError` e subclasses em `domain/exceptions.py`). A factory em `infra/api/app.py` registra um `exception_handler(DomainError)` que responde `{ "codigo", "mensagem" }` com HTTP 400.
+O domínio sinaliza violação de regra com uma hierarquia única (`DomainError` e subclasses em `domain/exceptions.py`). Quando a API existir, um único `exception_handler(DomainError)` mapeia para payload `{ "codigo", "mensagem" }` sem tratar `ValueError` genérico.
 
-Validação de formato de entrada (Pydantic) ocorre antes do caso de uso e, por padrão, o FastAPI responde **422**. Códigos estáveis (`codigo`) ainda são incremento da camada HTTP: [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
+**Base unificada.** Códigos estáveis (`codigo`) ainda são incremento da camada HTTP: [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
 
 ---
 
