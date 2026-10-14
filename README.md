@@ -72,7 +72,7 @@ agendado  →  aberto  →  encerrado  →  pago
 
 ## Como consumir a API
 
-A aplicação é uma **API REST** (sem interface gráfica). Endpoints documentados via **Swagger/OpenAPI** — acessível em `/apidocs` quando a aplicação estiver rodando.
+A aplicação é uma **API REST** (sem interface gráfica). Endpoints documentados via **Swagger/OpenAPI** gerado pelo FastAPI — acessível em `/docs` (ReDoc em `/redoc`) quando a aplicação estiver rodando.
 
 Ferramentas sugeridas para teste manual: Postman, Insomnia ou `curl`.
 

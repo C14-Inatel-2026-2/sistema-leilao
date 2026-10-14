@@ -8,11 +8,15 @@ Alinhado a [`must-read.md`](must-read.md) (seções 3.1, 6.1 e 6.4).
 
 ## Por que uma base comum
 
-A infraestrutura (Flask) precisa distinguir **violação de regra de negócio** de **bug técnico**. Com `DomainError`, um handler HTTP pode fazer:
+A infraestrutura (FastAPI) precisa distinguir **violação de regra de negócio** de **bug técnico**. Com `DomainError`, um handler HTTP pode fazer:
 
 ```python
-except DomainError as exc:
-    return {"codigo": ..., "mensagem": str(exc)}, 400
+@app.exception_handler(DomainError)
+def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content={"codigo": ..., "mensagem": str(exc)},
+    )
 ```
 
 Antes da unificação, `UsuarioInvalidoError` herdava de `DomainError`, mas lance/leilão/anúncio herdavam de `ValueError`. Um `except DomainError` não cobria o núcleo do leilão.
@@ -55,6 +59,7 @@ Definido em [`must-read.md`](must-read.md) §6.4. A hierarquia torna o mapeament
 | Situação | HTTP | Exceção típica |
 |---|---|---|
 | Dados ou regra de negócio violada | 400 | qualquer `DomainError` |
+| Payload com formato inválido | 422 | `RequestValidationError` (Pydantic; antes do caso de uso) |
 | Não autenticado | 401 | (infra/JWT, não domínio) |
 | Autenticado sem permissão | 403 | (caso de uso / papel; pode virar `DomainError` específica depois) |
 | Recurso inexistente | 404 | (repositório / caso de uso) |
@@ -67,7 +72,7 @@ Payload alvo:
 
 Códigos estáveis (`codigo`) ainda **não** existem — só mensagens em português. Podem entrar como incremento (atributo de classe ou tabela na camada HTTP), sem reabrir a hierarquia.
 
-Quando existir controller de lance, um único `except DomainError` cobre incremento, janela e vendedor.
+Quando existir router de lance, um único `exception_handler(DomainError)` cobre incremento, janela e vendedor.
 
 ---
 

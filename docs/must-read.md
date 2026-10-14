@@ -6,7 +6,7 @@ Este relatório define, de forma estruturada, o que deve ser construído em um m
 
 - **Propósito e escopo:** sistema acadêmico, somente backend web, estilo marketplace simples com leilões; sem apps mobile nativos nem integrações externas reais (pagamento, redes sociais).
 - **Visão de produto:** três papéis (comprador, vendedor, administrador opcional), fluxo mínimo de publicar, leiloar, dar lances, encerrar e registrar “venda simulada”; definição de um “corpus dourado” de cenários que o sistema precisa sempre atender.
-- **Arquitetura técnica:** uso de Clean Architecture com camadas `domain/`, `use_cases/`, `adapters/`, `infra/`; stack em Python/Flask/PostgreSQL; tratamento explícito de race conditions em lances via transações e locks; preparação para jobs agendados e, se desejado, evolução para processamento assíncrono.
+- **Arquitetura técnica:** uso de Clean Architecture com camadas `domain/`, `use_cases/`, `adapters/`, `infra/`; stack em Python/FastAPI/PostgreSQL; tratamento explícito de race conditions em lances via transações e locks; preparação para jobs agendados e, se desejado, evolução para processamento assíncrono.
 - **Funcionalidades:** cadastro e autenticação (JWT), anúncios e catálogo, leilões (estados, regras de lance, histórico), registro de “venda” e pagamento simulado, rotas administrativas de monitoramento.
 - **Comportamento e UX:** análise de motivadores de compradores e vendedores, desenho dos fluxos principais (onboarding, venda, compra), foco em transparência das regras e mensagens de erro claras para construir confiança.
 - **Desafios e riscos:** prevenção básica de fraudes (por exemplo, lances artificiais), latência e consistência em lances concorrentes, equilíbrio entre realismo de regras e simplicidade acadêmica, risco de overengineering.
@@ -29,7 +29,7 @@ O objetivo deste projeto é desenvolver um backend web de um mini marketplace co
 - Desenvolver uma base de testes automatizados que cubra regras críticas de negócio, especialmente as que envolvem concorrência em lances.
 - Experimentar automação de build e testes via CI/CD (por exemplo, Jenkins).
 
-Trata-se de um projeto **backend-only**: a API REST será consumida por ferramentas como Swagger, Postman ou clientes web desenvolvidos à parte. Essa separação explicita o contrato entre backend e qualquer frontend, e força o grupo a pensar cuidadosamente no desenho das rotas e dos payloads de entrada/saída.
+Trata-se de um projeto **backend-only**: a API REST será consumida por ferramentas como Swagger/OpenAPI (`/docs`, ReDoc em `/redoc`), Postman ou clientes web desenvolvidos à parte. Essa separação explicita o contrato entre backend e qualquer frontend, e força o grupo a pensar cuidadosamente no desenho das rotas e dos payloads de entrada/saída.
 
 Em termos pedagógicos, isso permite que a disciplina avalie o que interessa do ponto de vista de engenharia – clareza de domínio, coesão de módulos, legibilidade de código, cobertura de testes – sem que o tempo de curso seja gasto na construção de interfaces ricas.
 
@@ -199,7 +199,7 @@ A arquitetura proposta segue um padrão de Clean Architecture com leve inspiraç
 | Domínio        | `domain/`    | Entidades e regras de negócio puras (sem frameworks): `Usuario`, `Anuncio`, `Leilao`, etc. |
 | Aplicação      | `use_cases/` | Casos de uso (serviços de aplicação) que orquestram entidades, repositórios e eventos      |
 | Adaptadores    | `adapters/`  | Implementações de interfaces (repositórios, event bus, gateways se existirem)              |
-| Infraestrutura | `infra/`     | Entrada/saída do sistema: API HTTP (Flask), ORM (SQLAlchemy), jobs (APScheduler), etc.     |
+| Infraestrutura | `infra/`     | Entrada/saída do sistema: API HTTP (FastAPI), ORM (SQLAlchemy), jobs (APScheduler), etc.     |
 
 
 A regra de dependência central é:
@@ -213,7 +213,7 @@ Visualmente:
 ```text
             +------------------------+
             |        infra/          |
-            | (Flask, DB, Jobs...)   |
+            | (FastAPI, DB, Jobs...) |
             +-----------+------------+
                         |
                         v
@@ -233,7 +233,7 @@ Visualmente:
               +------------------+
 ```
 
-Essa estrutura permite, por exemplo, trocar o framework web (Flask por FastAPI) ou o mecanismo de persistência (SQLAlchemy por outro ORM) sem modificar as entidades de domínio ou os casos de uso.
+Essa estrutura permite, por exemplo, trocar o framework web (FastAPI por outro ASGI) ou o mecanismo de persistência (SQLAlchemy por outro ORM) sem modificar as entidades de domínio ou os casos de uso.
 
 ### 3.2 Organização do repositório
 
@@ -264,10 +264,10 @@ sistema-leilao/
 │       └── handlers/
 │
 ├── infra/
-│   ├── flask_app/
+│   ├── api/
 │   │   ├── app.py
-│   │   ├── routes/
-│   │   └── controllers/
+│   │   ├── routers/
+│   │   └── schemas/
 │   ├── db/
 │   │   ├── models/
 │   │   └── migrations/
@@ -305,16 +305,16 @@ A stack base recomendada é:
 
 | Camada / Finalidade           | Tecnologia (sugestão)               |
 | ----------------------------- | ----------------------------------- |
-| Linguagem                     | Python 3.11+                        |
-| Framework web                 | Flask (+ extensões REST)            |
-| ORM e migrations              | SQLAlchemy + Flask-Migrate          |
-| Banco de dados                | PostgreSQL                          |
-| Autenticação                  | JWT (biblioteca para Flask)         |
-| Gerenciamento de dependências | Poetry                              |
-| Testes                        | pytest (+ extensões)                |
-| Documentação de API           | Swagger/OpenAPI (por ex., Flasgger) |
-| CI/CD                         | Jenkins (via Jenkinsfile)           |
-| Jobs agendados                | APScheduler (MVP)                   |
+| Linguagem                     | Python 3.11+                              |
+| Framework web                 | FastAPI + Uvicorn (ASGI)                  |
+| ORM e migrations              | SQLAlchemy 2.0 + Alembic                  |
+| Banco de dados                | PostgreSQL                                |
+| Autenticação                  | PyJWT (`OAuth2PasswordBearer` / `Depends`) |
+| Gerenciamento de dependências | Poetry                                    |
+| Testes                        | pytest + httpx (`TestClient`) + pytest-cov |
+| Documentação de API           | OpenAPI nativo do FastAPI (`/docs`, `/redoc`) |
+| CI/CD                         | Jenkins (via Jenkinsfile)                 |
+| Jobs agendados                | APScheduler (MVP; lifespan do FastAPI)    |
 
 
 Essa combinação equilibra simplicidade e realismo: todas são tecnologias amplamente usadas, com boa documentação e tooling em torno.
@@ -681,7 +681,7 @@ Alguns trade-offs a considerar:
 **Complexidade vs. aprendizado:**
 
 - Introduzir filas, workers assíncronos, ou microserviços pode ser didático, mas corre o risco de diluir o tempo sobre o núcleo de leilão e marketplace.
-- Por outro lado, restringir tudo a um único script Flask “monolítico” reduz a exposição a boas práticas arquiteturais.
+- Por outro lado, restringir tudo a um único script FastAPI “monolítico” reduz a exposição a boas práticas arquiteturais.
 - A proposta de clean architecture modularizado atinge um bom ponto intermediário: mantém um único deploy (monolito) mas com separação interna.
 
 **Simulação de pagamento vs. realismo de checkout:**
@@ -702,7 +702,7 @@ Com base no exposto, algumas recomendações práticas:
 
 **Centralizar regras críticas no domínio:**
 
-- Toda lógica de aceitação/rejeição de lance deve estar em `Leilao` ou em serviços de domínio auxiliares, não em controllers.
+- Toda lógica de aceitação/rejeição de lance deve estar em `Leilao` ou em serviços de domínio auxiliares, não em routers HTTP.
 - Transições de estado (inclusive de `Venda`) também devem ser métodos de domínio.
 
 **Especificar features com “mini-specs” antes de codar:**
@@ -741,7 +741,7 @@ Um roadmap iterativo razoável é:
 | 1    | Domínio e testes unitários       | Entidades, estados de leilão, regras de lance + testes                                   |
 | 2    | Repositórios e banco de dados    | Interfaces de repositório, modelos ORM, migrations                                       |
 | 3    | Casos de uso                     | `CriarAnuncio`, `IniciarLeilao`, `DarLance`, `EncerrarLeilao` com testes de orquestração |
-| 4    | API REST                         | Rotas Flask, autenticação JWT, documentação via OpenAPI                                  |
+| 4    | API REST                         | Rotas FastAPI, autenticação JWT, documentação via OpenAPI (`/docs`)                      |
 | 5    | Jobs de encerramento             | Job com APScheduler para encerrar leilões automaticamente                                |
 | 6    | Testes de integração e hardening | Testes de API, testes de concorrência em lances, ajustes de logging e erros              |
 
@@ -784,11 +784,11 @@ Para avaliar o sucesso do projeto no contexto acadêmico, algumas métricas (qua
 **Aderência à arquitetura planejada:**
 
 - Verificação se o código respeita a separação `domain` / `use_cases` / `adapters` / `infra`.
-- Ausência de dependências indevidas (por exemplo, `domain` importando Flask ou SQLAlchemy).
+- Ausência de dependências indevidas (por exemplo, `domain` importando FastAPI ou SQLAlchemy).
 
 **Clareza da API:**
 
-- Facilidade em executar os fluxos do “corpus dourado” via Swagger ou Postman.
+- Facilidade em executar os fluxos do “corpus dourado” via `/docs` (Swagger) ou Postman.
 - Consistência de códigos e formatos de resposta.
 
 **Estabilidade em cenários de concorrência simulada:**

@@ -43,7 +43,7 @@ reports/
 .env.*
 !.env.example
 
-# Flask
+# Local instance / cache
 instance/
 
 # IDE

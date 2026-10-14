@@ -3,7 +3,7 @@ domain/usuario.py
 
 Entidade de dominio: Usuario.
 
-Regra de ouro deste modulo: SEM imports de Flask, SQLAlchemy, Flask-JWT-Extended
+Regra de ouro deste modulo: SEM imports de FastAPI, SQLAlchemy, PyJWT
 ou qualquer biblioteca de infraestrutura. Aqui vive somente a regra de negocio -
 o que torna um Usuario valido e o que ele pode ou nao fazer.
 
