@@ -4,7 +4,7 @@ domain/exceptions.py
 Excecoes de dominio, compartilhadas entre as entidades (Usuario, Anuncio, Leilao...).
 
 Usar excecoes especificas (em vez de ValueError generico) deixa explicito, no
-bloco except da camada de infra/Flask, que a rejeicao veio de uma regra de
+handler HTTP da camada de infra, que a rejeicao veio de uma regra de
 negocio violada - e nao de um bug ou erro tecnico.
 """
 

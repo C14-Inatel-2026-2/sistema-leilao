@@ -4,7 +4,7 @@ Distribuição de domínios, papéis e tarefas entre os integrantes do **sistema
 
 Referências: [`proximos-passos.md`](proximos-passos.md) · [`arquitetura.md`](arquitetura.md) · [`estrutura-e-stack.md`](estrutura-e-stack.md)
 
-**Estado (out/2026):** domínio e testes unitários feitos; `CadastrarUsuario` existe; CI (`Dockerfile`/`Jenkinsfile`) em `dev`. Próximo gargalo: models, migrations e repositories. Roteiro atualizado em [`proximos-passos.md`](proximos-passos.md).
+**Estado (out/2026):** domínio e testes unitários feitos; `CadastrarUsuario` existe; CI (`Dockerfile`/`Jenkinsfile`) em `dev`; stack HTTP é FastAPI. Próximo gargalo: models, migrations Alembic e repositories. Roteiro atualizado em [`proximos-passos.md`](proximos-passos.md).
 
 ---
 
@@ -34,8 +34,8 @@ Responsável por todo o ciclo de vida do usuário: cadastro, autenticação, aut
 | Domínio | Entidade `Usuario` (conta, credenciais, papéis) | `domain/usuario.py` |
 | Adaptadores | Repository de usuários (CRUD, busca por e-mail) | `adapters/repositories/usuario_repository.py` |
 | Infra / DB | Model SQLAlchemy e migration de usuários | `infra/db/models/usuario.py`, `infra/db/migrations/` |
-| API | Endpoints de autenticação JWT (registro e login) | `infra/flask_app/controllers/auth_controller.py`, `infra/flask_app/routes/auth.py` |
-| API | Proteção de rotas com `@jwt_required()` e claims de papel | `infra/flask_app/` |
+| API | Endpoints de autenticação JWT (registro e login) | `infra/api/routers/auth.py`, `infra/api/schemas/` |
+| API | Proteção de rotas com `Depends(get_current_user)` e claims de papel | `infra/api/dependencies.py` |
 | Testes | Testes unitários de `Usuario` e testes de integração de auth | `tests/unit/`, `tests/integration/` |
 
 ### Branches
@@ -44,7 +44,7 @@ Responsável por todo o ciclo de vida do usuário: cadastro, autenticação, aut
 feature/domain-usuario              # feito
 feature/use-case-cadastrar-usuario  # feito
 feature/infra-db-model-usuario      # próximo
-feature/flask-auth-jwt
+feature/api-auth-jwt
 ```
 
 ### Papel de Guardião — UI/UX
@@ -72,7 +72,7 @@ Responsável pela criação e gestão de anúncios, categorias e pela configura�
 | Infra / DB | Models SQLAlchemy e migrations de categorias, anúncios e leilões | `infra/db/models/` |
 | Casos de uso | `CriarAnuncio` — vendedor cadastra produto (venda direta ou leilão) | `use_cases/criar_anuncio.py` |
 | Casos de uso | `IniciarLeilao` — transição `agendado` → `aberto` | `use_cases/iniciar_leilao.py` |
-| API | Endpoints de CRUD de anúncios e listagem com filtros | `infra/flask_app/controllers/`, `infra/flask_app/routes/` |
+| API | Endpoints de CRUD de anúncios e listagem com filtros | `infra/api/routers/`, `infra/api/schemas/` |
 | Testes | Testes unitários das entidades e de integração dos casos de uso de catálogo | `tests/unit/`, `tests/integration/` |
 
 ### Branches
@@ -82,7 +82,7 @@ feature/domain-entidades-catalogo       # feito
 feature/infra-db-models-catalogo        # próximo
 feature/adapters-repositories-catalogo
 feature/use-case-criar-anuncio
-feature/flask-routes-catalogo
+feature/api-routes-catalogo
 ```
 
 ### Papel de Guardião — Repositório
@@ -111,8 +111,8 @@ Responsável pela lógica de lances (validação, concorrência, lock transacion
 | Casos de uso | `DarLance` — validação, persistência com lock, publicação de `LanceRealizado` | `use_cases/dar_lance.py` |
 | Casos de uso | `EncerrarLeilao` — encerramento, apuração de vencedor ou cancelamento | `use_cases/encerrar_leilao.py` |
 | Eventos | Publisher e evento `LanceRealizado` | `adapters/events/publisher.py` |
-| Jobs | APScheduler para abrir e encerrar leilões automaticamente | `infra/jobs/encerrar_leiloes.py` |
-| API | Endpoint `POST /leiloes/{id}/lances` e `GET /leiloes/{id}/lances` | `infra/flask_app/controllers/`, `infra/flask_app/routes/` |
+| Jobs | APScheduler (lifespan) para abrir e encerrar leilões automaticamente | `infra/jobs/encerrar_leiloes.py` |
+| API | Endpoint `POST /leiloes/{id}/lances` e `GET /leiloes/{id}/lances` | `infra/api/routers/`, `infra/api/schemas/` |
 | Testes | Testes unitários de regras de lance e testes de integração com lock | `tests/unit/`, `tests/integration/` |
 
 ### Branches
@@ -123,7 +123,7 @@ feature/use-case-dar-lance        # próximo (abrir branch nova a partir de `dev
 feature/use-case-encerrar-leilao
 feature/adapters-events
 feature/jobs-leilao
-feature/flask-routes-lances
+feature/api-routes-lances
 ```
 
 ### Papel de Guardião — Arquitetura e Integração
@@ -150,8 +150,8 @@ Responsável pelos fluxos após o encerramento do leilão: registro de históric
 | Eventos | Handlers de `LeilaoEncerrado` e `LanceRealizado` para persistir histórico | `adapters/events/handlers/` |
 | Eventos | Evento `LeilaoEncerrado` e integração com publisher | `adapters/events/publisher.py` |
 | Infra / DB | Models e migrations para tabelas de histórico e auditoria | `infra/db/models/`, `infra/db/migrations/` |
-| API | Endpoint `GET /leiloes/{id}` (detalhe com status final e vencedor) | `infra/flask_app/controllers/`, `infra/flask_app/routes/` |
-| API | Endpoints futuros de histórico e relatórios de auditoria | `infra/flask_app/` |
+| API | Endpoint `GET /leiloes/{id}` (detalhe com status final e vencedor) | `infra/api/routers/`, `infra/api/schemas/` |
+| API | Endpoints futuros de histórico e relatórios de auditoria | `infra/api/` |
 | Testes | Testes de integração dos handlers de eventos e fluxos pós-leilão | `tests/integration/` |
 
 ### Branches
@@ -160,7 +160,7 @@ Responsável pelos fluxos após o encerramento do leilão: registro de históric
 chore/ci-jenkinsfile                 # feito (Dockerfile + Jenkinsfile em `dev`)
 feature/adapters-events-handlers     # próximo
 feature/infra-db-historico-auditoria
-feature/flask-routes-historico
+feature/api-routes-historico
 ```
 
 ### Papel de Guardião — Banco e Qualidade

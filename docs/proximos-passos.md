@@ -2,7 +2,7 @@
 
 Roteiro de implementação do **sistema-leilao**. A sequência é recomendada, não obrigatória.
 
-**Snapshot (out/2026, branch `dev`):** a fase de domínio e testes unitários está concluída. O gargalo agora é **persistência** (models SQLAlchemy, migrations e repositories). Sem isso, os casos de uso restantes, a API Flask e os jobs não avançam.
+**Snapshot (out/2026, branch `dev`):** a fase de domínio e testes unitários está concluída. O gargalo agora é **persistência** (models SQLAlchemy, migrations Alembic e repositories). Sem isso, os casos de uso restantes, a API FastAPI e os jobs não avançam.
 
 Distribuição detalhada de responsabilidades por integrante em [`responsabilidades-equipe.md`](responsabilidades-equipe.md).
 
@@ -18,7 +18,7 @@ Contexto arquitetural em [`arquitetura.md`](arquitetura.md). Árvore de diretór
 | `tests/unit/` | **Feito.** Testes das entidades e de `CadastrarUsuario` |
 | `use_cases/` | **Parcial.** Só `CadastrarUsuario` (+ `interfaces.py` com `UsuarioRepository` e `PasswordHasher`) |
 | `adapters/` | **Vazio.** Pastas com `.gitkeep` |
-| `infra/db/`, `infra/flask_app/`, `infra/jobs/` | **Vazio.** Pastas com `.gitkeep` |
+| `infra/db/`, `infra/api/`, `infra/jobs/` | **Vazio.** Pastas com `.gitkeep` |
 | CI | **Feito.** `Dockerfile` + `Jenkinsfile` (build da imagem e `pytest` com relatórios) |
 | `docker-compose.yml` | **Feito.** PostgreSQL 16 + Redis (Redis só se Celery) |
 
@@ -51,7 +51,7 @@ Sem schema, não há persistência nem testes de integração.
 
 Pedro ([@phpaiva05](https://github.com/phpaiva05)) revisa todas as migrations (guardião de banco).
 
-Ordem dentro de cada PR: models → `flask db init` / `migrate` / `upgrade`.
+Ordem dentro de cada PR: `Base(DeclarativeBase)` + models → `alembic init` (uma vez) → `alembic revision --autogenerate -m "..."` → `alembic upgrade head`.
 
 Ao começar esta fase, copiar o ambiente local: `cp .env.example .env` e `docker compose up` (PostgreSQL).
 
@@ -68,7 +68,7 @@ O domínio não conhece a infraestrutura; os casos de uso dependem só dos contr
 
 ### 3. Casos de uso restantes (`use_cases/`)
 
-Cada caso de uso recebe repositories (e publisher, quando houver eventos) por injeção. **Não** importar Flask nem SQLAlchemy.
+Cada caso de uso recebe repositories (e publisher, quando houver eventos) por injeção. **Não** importar FastAPI nem SQLAlchemy.
 
 | Quem | Arquivo | Responsabilidade |
 |---|---|---|
@@ -80,9 +80,9 @@ Cada caso de uso recebe repositories (e publisher, quando houver eventos) por in
 
 Testes de integração em `tests/integration/` com PostgreSQL de teste, quando os repositories existirem.
 
-### 4. API Flask (`infra/flask_app/`)
+### 4. API FastAPI (`infra/api/`)
 
-Factory `create_app`, JWT, Flasgger em `/apidocs`.
+Factory `create_app`, JWT via `Depends`, OpenAPI em `/docs`.
 
 | Quem | Método | Rota | Caso de uso |
 |---|---|---|---|
@@ -94,9 +94,9 @@ Factory `create_app`, JWT, Flasgger em `/apidocs`.
 | **Pedro Vitor** | `GET` | `/leiloes/{id}/lances` | Histórico de lances |
 | **Pedro Vitor** / **Pedro** | `GET` | `/leiloes/{id}` | Detalhe (status, lance atual, vencedor) |
 
-Controllers em `infra/flask_app/controllers/`; rotas em `infra/flask_app/routes/`.
+Routers em `infra/api/routers/`; schemas Pydantic em `infra/api/schemas/`; injeção em `infra/api/dependencies.py`.
 
-A factory registra SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flasgger e o scheduler.
+A factory registra exception handlers, routers e o scheduler no `lifespan`.
 
 ### 5. Jobs (`infra/jobs/`) — **Pedro Vitor**
 
@@ -107,7 +107,7 @@ O job **não contém regra de negócio** — só dispara casos de uso. Detalhes 
 | Abrir leilões agendados | A cada 1 min (ajustável) | `agendado` com início ≤ agora → `IniciarLeilao` |
 | Encerrar leilões expirados | A cada 1 min (ajustável) | `aberto` com fim ≤ agora → `EncerrarLeilao` |
 
-Tecnologia MVP: APScheduler no processo Flask (`pyproject.toml`). Arquivo previsto: `infra/jobs/encerrar_leiloes.py`.
+Tecnologia MVP: APScheduler no `lifespan` do FastAPI (`pyproject.toml`). Arquivo previsto: `infra/jobs/encerrar_leiloes.py`.
 
 ### 6. Pós-leilão — **Pedro**
 
@@ -115,7 +115,7 @@ CI (`chore/ci-jenkinsfile`) **já está em `dev`**. Foco restante:
 
 1. `feature/adapters-events-handlers` — handlers de `LeilaoEncerrado` e `LanceRealizado`
 2. `feature/infra-db-historico-auditoria` — models e migrations de histórico
-3. `feature/flask-routes-historico` — endpoints de histórico e relatórios
+3. `feature/api-routes-historico` — endpoints de histórico e relatórios
 
 ---
 
@@ -135,7 +135,7 @@ feature/infra-db-model-usuario
 feature/infra-db-models-catalogo
 feature/adapters-repositories-catalogo
 feature/use-case-dar-lance
-feature/flask-auth-jwt
+feature/api-auth-jwt
 ```
 
 ### Ambiente (`.env`)
@@ -144,18 +144,21 @@ Necessário a partir dos models / da API. O arquivo **não** é versionado.
 
 | Variável | Finalidade |
 |---|---|
-| `FLASK_APP` | Ponto de entrada (`infra.flask_app.app`) |
-| `FLASK_ENV` | `development` em ambiente local |
-| `SECRET_KEY` | Chave da aplicação Flask |
+| `APP_ENV` | `development` em ambiente local |
+| `SECRET_KEY` | Chave da aplicação |
 | `DATABASE_URL` | PostgreSQL (`postgresql://leilao:leilao@localhost:5432/leilao`) |
 | `JWT_SECRET_KEY` | Assinatura dos tokens JWT |
+| `JWT_ALGORITHM` | Algoritmo JWT (`HS256`) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Validade do access token |
 | `REDIS_URL` | Só se adotar Celery |
+
+Subir a API: `uvicorn infra.api.app:create_app --factory --reload`.
 
 ---
 
 ## Domínio (concluído)
 
-Entidades e regras puras, sem Flask ou SQLAlchemy. Detalhes em [`arquitetura.md`](arquitetura.md#modelo-de-domínio).
+Entidades e regras puras, sem FastAPI ou SQLAlchemy. Detalhes em [`arquitetura.md`](arquitetura.md#modelo-de-domínio).
 
 | Arquivo | Entidade | Responsabilidade |
 |---|---|---|
@@ -188,7 +191,7 @@ Entidades e regras puras, sem Flask ou SQLAlchemy. Detalhes em [`arquitetura.md`
 
 ## CI e qualidade
 
-O pipeline atual constrói a imagem Docker e roda `pytest` (JUnit + cobertura XML). Os testes de hoje são unitários, sem Flask nem PostgreSQL.
+O pipeline atual constrói a imagem Docker e roda `pytest` (JUnit + cobertura XML). Os testes de hoje são unitários, sem PostgreSQL.
 
 Quando existirem testes de integração, o stage de Test deve subir o Postgres (`docker compose`).
 
@@ -208,11 +211,11 @@ Detalhes em [`responsabilidades-equipe.md`](responsabilidades-equipe.md).
 | **Pedro Vitor** ([@PedroVGSC](https://github.com/PedroVGSC)) | Motor de Lances e Tempo Real | Arquitetura e Integração |
 | **Pedro** ([@phpaiva05](https://github.com/phpaiva05)) | Pós-Leilão, Histórico e Auditoria | Banco e Qualidade |
 
-**Téo** — próximo: `feature/infra-db-model-usuario`, depois `feature/flask-auth-jwt`.
+**Téo** — próximo: `feature/infra-db-model-usuario`, depois `feature/api-auth-jwt`.
 
-**Caio** — próximo: `feature/infra-db-models-catalogo` → `feature/adapters-repositories-catalogo` → `feature/use-case-criar-anuncio` → `feature/flask-routes-catalogo`.
+**Caio** — próximo: `feature/infra-db-models-catalogo` → `feature/adapters-repositories-catalogo` → `feature/use-case-criar-anuncio` → `feature/api-routes-catalogo`.
 
-**Pedro Vitor** — próximo: `feature/use-case-dar-lance` (branch nova a partir de `dev`) → `feature/use-case-encerrar-leilao` → `feature/adapters-events` → `feature/jobs-leilao` → `feature/flask-routes-lances`.
+**Pedro Vitor** — próximo: `feature/use-case-dar-lance` (branch nova a partir de `dev`) → `feature/use-case-encerrar-leilao` → `feature/adapters-events` → `feature/jobs-leilao` → `feature/api-routes-lances`.
 
 **Pedro** — CI já feito; próximo: handlers, histórico/auditoria e rotas de histórico. Revisar migrations dos demais.
 
@@ -225,17 +228,17 @@ Cada PR deve ser revisável e mergeável de forma independente:
 1. `feature/infra-db-model-usuario` — **(Téo)** model e migration de usuário
 2. `feature/infra-db-models-catalogo` — **(Caio)** models e migrations de catálogo
 3. `feature/adapters-repositories-catalogo` — **(Caio)** repositories de anúncios e leilões (+ usuário, se Téo não tiver feito à parte)
-4. `feature/flask-auth-jwt` — **(Téo)** registro, login e proteção de rotas
+4. `feature/api-auth-jwt` — **(Téo)** registro, login e proteção de rotas
 5. `feature/use-case-criar-anuncio` — **(Caio)** criação de anúncio ponta a ponta
 6. `feature/use-case-dar-lance` — **(Pedro Vitor)** lance com lock e evento
 7. `feature/use-case-encerrar-leilao` — **(Pedro Vitor)** encerramento e apuração
 8. `feature/adapters-events` — **(Pedro Vitor)** publisher e eventos
 9. `feature/adapters-events-handlers` — **(Pedro)** handlers de histórico e auditoria
 10. `feature/infra-db-historico-auditoria` — **(Pedro)** models de histórico
-11. `feature/flask-routes-catalogo` — **(Caio)** REST de catálogo + Flasgger
-12. `feature/flask-routes-lances` — **(Pedro Vitor)** REST de lances
-13. `feature/flask-routes-historico` — **(Pedro)** REST de histórico
-14. `feature/jobs-leilao` — **(Pedro Vitor)** APScheduler
+11. `feature/api-routes-catalogo` — **(Caio)** REST de catálogo + schemas OpenAPI
+12. `feature/api-routes-lances` — **(Pedro Vitor)** REST de lances
+13. `feature/api-routes-historico` — **(Pedro)** REST de histórico
+14. `feature/jobs-leilao` — **(Pedro Vitor)** APScheduler no lifespan
 
 PRs menores (ex.: separar auth de rotas) são bem-vindos se facilitarem a revisão.
 
@@ -247,10 +250,10 @@ Caminho mínimo para **criar leilão → dar lance → encerrar automaticamente*
 
 ```text
 1. domain/leilao.py + domain/lance.py + testes unitários   ← feito
-2. infra/db/models + migration                             ← próximo
+2. infra/db/models + migration Alembic                     ← próximo
 3. adapters/repositories (leilao + usuario mínimo)
 4. use_cases/dar_lance.py + use_cases/encerrar_leilao.py
-5. infra/flask_app/ com POST /leiloes/{id}/lances
+5. infra/api/ com POST /leiloes/{id}/lances
 6. infra/jobs/ encerrando leilões expirados
 ```
 

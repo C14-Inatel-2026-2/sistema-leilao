@@ -3,7 +3,7 @@ domain/lance.py
 
 Entidade de dominio: Lance.
 
-Regra de ouro deste modulo: SEM imports de Flask, SQLAlchemy ou qualquer
+Regra de ouro deste modulo: SEM imports de FastAPI, SQLAlchemy ou qualquer
 biblioteca de infraestrutura. Aqui vive somente a regra de negocio.
 
 Um Lance e um fato imutavel: depois de aceito por um leilao, valor, comprador e
