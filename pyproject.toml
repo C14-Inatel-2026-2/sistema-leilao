@@ -42,7 +42,7 @@ pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["domain", "use_cases", "adapters", "infra"]
-omit = ["tests/*", "infra/db/migrations/*"]
+omit = ["tests/*"]
 
 [build-system]
 requires = ["poetry-core"]

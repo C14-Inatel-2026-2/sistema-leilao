@@ -6,7 +6,7 @@
 
 Isto não substitui [`docs/proximos-passos.md`](../../proximos-passos.md) nem [`docs/responsabilidades-equipe.md`](../../responsabilidades-equipe.md). É o roteiro da primeira entrega de persistência do catálogo.
 
-A stack HTTP passou de Flask para FastAPI: **não** há Flask-Migrate nem `flask db`. Models herdam `infra.db.session.Base`; migrations rodam com Alembic puro.
+A stack HTTP passou de Flask para FastAPI: **não** há Flask-Migrate nem `flask db`. Models herdam de uma `DeclarativeBase` do SQLAlchemy 2.0; migrations rodam com Alembic puro.
 
 ---
 
@@ -16,22 +16,22 @@ A stack HTTP passou de Flask para FastAPI: **não** há Flask-Migrate nem `flask
 
 **Não é:** repositories, casos de uso, routers FastAPI, JWT, jobs.
 
-Pastas à espera: `infra/db/models/` (vazia). Já existem `infra/db/session.py`, `alembic.ini` e `infra/db/migrations/env.py`.
+Pastas vazias à espera: `infra/db/models/`, `infra/db/migrations/`, `infra/api/`.
 
 Regra de camadas: dataclasses em `domain/` **não** ganham SQLAlchemy. Models em `infra/db/models/` só espelham colunas. O domínio não importa FastAPI nem SQLAlchemy.
 
 ---
 
-## Passo 0 — sessão e Alembic (já no repositório)
+## Passo 0 — configurar `Base` e Alembic (sem precisar de app HTTP)
 
-Não é preciso criar app HTTP para migrar. Conferir:
+Com Alembic puro (em vez de `flask db`), **não** é necessário criar uma app HTTP mínima para rodar migrations. Basta configurar a base do SQLAlchemy e inicializar o Alembic em `infra/db/`:
 
-- `infra/db/session.py` — `engine`, `SessionLocal`, `class Base(DeclarativeBase)`, `get_db()`
-- `infra/config.py` — `DATABASE_URL` via pydantic-settings
-- `alembic.ini` — `script_location = infra/db/migrations`
-- `infra/db/migrations/env.py` — usa `Base.metadata` e `settings.DATABASE_URL`
+O que procurar:
 
-Quando os models existirem, **importá-los** em `env.py` (há um comentário no arquivo). Sem isso o autogenerate emite revision vazia.
+- SQLAlchemy 2.0 `DeclarativeBase`, `create_engine`, `sessionmaker` (ex.: `infra/db/session.py` ou `database.py`)
+- `alembic init infra/db/migrations` (gera `alembic.ini` e `infra/db/migrations/env.py`)
+- Configurar `target_metadata = Base.metadata` e `DATABASE_URL` do `.env` no `env.py`
+- Importar os models no `env.py` antes de rodar o autogenerate (senão a revision sai vazia)
 
 Comandos:
 
@@ -154,4 +154,4 @@ cp .env.example .env
 docker compose up
 ```
 
-Próximo ato: inventário no papel (passo 1) e models herdando `Base` (passo 3).
+Próximo ato: inventário no papel (passo 1) e setup do `Base` + Alembic (passo 0).
