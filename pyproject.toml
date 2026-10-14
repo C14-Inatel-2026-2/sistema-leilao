@@ -41,6 +41,9 @@ pythonpath = ["."]
 [tool.coverage.run]
 source = ["domain", "use_cases", "adapters", "infra"]
 omit = ["tests/*"]
+# Caminhos relativos no coverage.xml: o relatorio e gerado no container
+# (/app), e o Jenkins rejeita caminhos fora do seu workspace.
+relative_files = true
 
 [build-system]
 requires = ["poetry-core"]
