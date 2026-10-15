@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE = "sistema-leilao:${BUILD_NUMBER}"
-        TEST_CONTAINER = "leilao-test-${BUILD_NUMBER}"
+        GIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+        IMAGE = "sistema-leilao:${GIT_SHA}"
+        TEST_CONTAINER = "leilao-test-${GIT_SHA}"
     }
 
     stages {
@@ -48,19 +49,80 @@ pipeline {
                 )
             }
         }
+
+        stage('Deploy Staging') {
+            steps {
+                echo "Deploy em Staging com a imagem: ${IMAGE}"
+                sh '''
+                    docker network create leilao-network 2>/dev/null || true
+
+                    # Atualiza banco de dados
+                    docker run --rm --network leilao-network \
+                        -e DATABASE_URL="$DATABASE_URL" \
+                        "$IMAGE" alembic upgrade head || true
+
+                    # Reinicia container de staging na porta 8001
+                    docker stop leilao-staging 2>/dev/null || true
+                    docker rm leilao-staging 2>/dev/null || true
+
+                    docker run -d --name leilao-staging \
+                        --network leilao-network \
+                        -p 8001:8000 \
+                        --restart unless-stopped \
+                        "$IMAGE" uvicorn infra.api.app:create_app --factory --host 0.0.0.0 --port 8000
+
+                    sleep 3
+                    curl -f http://localhost:8001/docs || exit 1
+                '''
+            }
+        }
+
+        stage('Aprovação Manual para Produção') {
+            steps {
+                timeout(time: 1, unit: 'DAYS') {
+                    input message: "O teste em Staging (porta 8001) foi bem sucedido? Promover a imagem ${IMAGE} para Produção?", ok: "Aprovar Deploy em Produção"
+                }
+            }
+        }
+
+        stage('Deploy Produção') {
+            steps {
+                //muda a porta para a porta 8000, simulando o deploy em produção
+                echo "Deploy em Produção com a MESMA imagem validada: ${IMAGE}"
+                sh '''
+                    docker network create leilao-network 2>/dev/null || true
+
+                    docker run --rm --network leilao-network \
+                        -e DATABASE_URL="$DATABASE_URL" \
+                        "$IMAGE" alembic upgrade head || true
+
+                    # Reinicia container de producao na porta oficial 8000
+                    docker stop leilao-prod 2>/dev/null || true
+                    docker rm leilao-prod 2>/dev/null || true
+
+                    docker run -d --name leilao-prod \
+                        --network leilao-network \
+                        -p 8000:8000 \
+                        --restart unless-stopped \
+                        "$IMAGE" uvicorn infra.api.app:create_app --factory --host 0.0.0.0 --port 8000
+
+                    sleep 3
+                    curl -f http://localhost:8000/docs || exit 1
+                '''
+            }
+        }
     }
 
     post {
         always {
             junit allowEmptyResults: true, testResults: 'reports/junit.xml'
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
-            sh 'docker rmi "$IMAGE" >/dev/null 2>&1 || true'
         }
         success {
-            echo 'Build e testes concluidos com sucesso.'
+            echo 'Pipeline finalizado com sucesso!'
         }
         failure {
-            echo 'Falha no build ou nos testes.'
+            echo 'Falha em alguma das etapas do pipeline.'
         }
     }
 }
