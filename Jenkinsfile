@@ -71,8 +71,9 @@ pipeline {
                         --restart unless-stopped \
                         "$IMAGE" uvicorn infra.api.app:create_app --factory --host 0.0.0.0 --port 8000
 
-                    sleep 3
-                    curl -f http://localhost:8001/docs || exit 1
+                    # Valida saude do servico atraves da rede Docker
+                    docker run --rm --network leilao-network curlimages/curl \
+                        curl -f --retry 10 --retry-delay 2 --retry-connrefused http://leilao-staging:8000/docs
                 '''
             }
         }
@@ -106,8 +107,9 @@ pipeline {
                         --restart unless-stopped \
                         "$IMAGE" uvicorn infra.api.app:create_app --factory --host 0.0.0.0 --port 8000
 
-                    sleep 3
-                    curl -f http://localhost:8000/docs || exit 1
+                    # Valida saude do servico atraves da rede Docker
+                    docker run --rm --network leilao-network curlimages/curl \
+                        curl -f --retry 10 --retry-delay 2 --retry-connrefused http://leilao-prod:8000/docs
                 '''
             }
         }
