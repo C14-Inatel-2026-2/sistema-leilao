@@ -9,6 +9,22 @@ pipeline {
     }
 
     stages {
+        stage('Lint Dockerfile (Hadolint)') {
+            steps {
+                // Hadolint roda em container: nao exige instalacao no agente.
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh '''
+                        mkdir -p reports
+                        set +e
+                        docker run --rm -i hadolint/hadolint hadolint --failure-threshold warning - < Dockerfile > reports/hadolint.txt
+                        status=$?
+                        cat reports/hadolint.txt
+                        exit $status
+                    '''
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 sh 'docker build -t "$IMAGE" .'
@@ -48,6 +64,49 @@ pipeline {
                         [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'UNSTABLE'],
                     ]
                 )
+            }
+        }
+
+        stage('Security Scan') {
+            parallel {
+                stage('Trivy') {
+                    steps {
+                        // Marca o build como UNSTABLE se houver vulnerabilidade HIGH/CRITICAL com correcao disponivel.
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                            sh '''
+                                mkdir -p reports
+                                set +e
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v trivy-cache:/root/.cache \
+                                    aquasec/trivy:latest image \
+                                    --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+                                    "$IMAGE" > reports/trivy.txt
+                                status=$?
+                                cat reports/trivy.txt
+                                exit $status
+                            '''
+                        }
+                    }
+                }
+                stage('Grype') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                            sh '''
+                                mkdir -p reports
+                                set +e
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v grype-cache:/root/.cache \
+                                    anchore/grype:latest "docker:$IMAGE" \
+                                    --only-fixed --fail-on high > reports/grype.txt
+                                status=$?
+                                cat reports/grype.txt
+                                exit $status
+                            '''
+                        }
+                    }
+                }
             }
         }
 
