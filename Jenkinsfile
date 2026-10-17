@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
+        DOCKER_HUB_USER = 'phpaiva05'
         GIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-        IMAGE = "sistema-leilao:${GIT_SHA}"
+        IMAGE = "${DOCKER_HUB_USER}/sistema-leilao:${GIT_SHA}"
         TEST_CONTAINER = "leilao-test-${GIT_SHA}"
     }
 
@@ -50,10 +51,25 @@ pipeline {
             }
         }
 
+        stage('Push to Docker Hub') {
+            steps {
+                echo "Enviando imagem para o Docker Hub: ${IMAGE}"
+                withCredentials([usernamePassword(credentialsId: 'docker-hub', 
+                                                 usernameVariable: 'DH_USER', 
+                                                 passwordVariable: 'DH_PASS')]) {
+                    sh '''
+                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                        docker push "$IMAGE"
+                    '''
+                }
+            }
+        }
+
         stage('Deploy Staging') {
             steps {
-                echo "Deploy em Staging com a imagem: ${IMAGE}"
+                echo "Deploy em Staging com a imagem do Docker Hub: ${IMAGE}"
                 sh '''
+                    docker pull "$IMAGE"
                     docker network create leilao-network 2>/dev/null || true
 
                     # Atualiza banco de dados
@@ -91,6 +107,7 @@ pipeline {
                 //muda a porta para a porta 8000, simulando o deploy em produção
                 echo "Deploy em Produção com a MESMA imagem validada: ${IMAGE}"
                 sh '''
+                    docker pull "$IMAGE"
                     docker network create leilao-network 2>/dev/null || true
 
                     docker run --rm --network leilao-network \
