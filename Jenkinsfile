@@ -45,28 +45,6 @@ pipeline {
             }
         }
 
-        stage('Coverage Report') {
-            steps {
-                // Le o coverage.xml gerado no stage Test e publica no Jenkins.
-                // Os caminhos no XML sao relativos a cada pacote, por isso as
-                // pastas de codigo-fonte sao listadas uma a uma.
-                recordCoverage(
-                    tools: [[parser: 'COBERTURA', pattern: 'reports/coverage.xml']],
-                    id: 'coverage',
-                    name: 'Cobertura de Testes',
-                    sourceDirectories: [
-                        [path: 'domain'],
-                        [path: 'use_cases'],
-                        [path: 'adapters'],
-                        [path: 'infra'],
-                    ],
-                    qualityGates: [
-                        [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'UNSTABLE'],
-                    ]
-                )
-            }
-        }
-
         stage('Security Scan') {
             parallel {
                 stage('Trivy') {
@@ -127,7 +105,25 @@ pipeline {
 
     post {
         always {
+            // Relatorio unico no fim: testes, cobertura e scans (Hadolint, Trivy, Grype).
             junit allowEmptyResults: true, testResults: 'reports/junit.xml'
+            // Le o coverage.xml gerado no stage Test e publica no Jenkins.
+            // Os caminhos no XML sao relativos a cada pacote, por isso as
+            // pastas de codigo-fonte sao listadas uma a uma.
+            recordCoverage(
+                tools: [[parser: 'COBERTURA', pattern: 'reports/coverage.xml']],
+                id: 'coverage',
+                name: 'Cobertura de Testes',
+                sourceDirectories: [
+                    [path: 'domain'],
+                    [path: 'use_cases'],
+                    [path: 'adapters'],
+                    [path: 'infra'],
+                ],
+                qualityGates: [
+                    [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'UNSTABLE'],
+                ]
+            )
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
         }
         success {
