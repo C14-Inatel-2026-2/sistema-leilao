@@ -2,8 +2,10 @@ pipeline {
     agent any
 
     environment {
-        IMAGE = "sistema-leilao:${BUILD_NUMBER}"
-        TEST_CONTAINER = "leilao-test-${BUILD_NUMBER}"
+        DOCKER_HUB_USER = 'phpaiva05'
+        GIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+        IMAGE = "${DOCKER_HUB_USER}/sistema-leilao:${GIT_SHA}"
+        TEST_CONTAINER = "leilao-test-${GIT_SHA}"
     }
 
     stages {
@@ -48,19 +50,32 @@ pipeline {
                 )
             }
         }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo "Enviando imagem para o Docker Hub: ${IMAGE}"
+                withCredentials([usernamePassword(credentialsId: 'docker-hub', 
+                                                 usernameVariable: 'DH_USER', 
+                                                 passwordVariable: 'DH_PASS')]) {
+                    sh '''
+                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                        docker push "$IMAGE"
+                    '''
+                }
+            }
+        }
     }
 
     post {
         always {
             junit allowEmptyResults: true, testResults: 'reports/junit.xml'
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
-            sh 'docker rmi "$IMAGE" >/dev/null 2>&1 || true'
         }
         success {
-            echo 'Build e testes concluidos com sucesso.'
+            echo 'Pipeline finalizado com sucesso!'
         }
         failure {
-            echo 'Falha no build ou nos testes.'
+            echo 'Falha em alguma das etapas do pipeline.'
         }
     }
 }
