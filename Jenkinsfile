@@ -9,6 +9,25 @@ pipeline {
     }
 
     stages {
+        stage('Lint Dockerfile (Hadolint)') {
+            steps {
+                // Hadolint roda em container: nao exige instalacao no agente.
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh '''
+                        mkdir -p reports
+                        set +e
+                        docker run --rm -i hadolint/hadolint hadolint --failure-threshold warning - < Dockerfile > reports/hadolint.txt
+                        status=$?
+                        cat reports/hadolint.txt
+                        # Mesmo resultado em JUnit, para entrar no relatorio de testes (post).
+                        docker run --rm -i hadolint/hadolint hadolint --no-fail -f json - < Dockerfile > reports/hadolint.json || true
+                        docker run --rm -i ghcr.io/jqlang/jq:latest -r "$(cat tools/junit/hadolint.jq)" < reports/hadolint.json > reports/hadolint-junit.xml || true
+                        exit $status
+                    '''
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 sh 'docker build -t "$IMAGE" .'
@@ -29,25 +48,61 @@ pipeline {
             }
         }
 
-        stage('Coverage Report') {
-            steps {
-                // Le o coverage.xml gerado no stage Test e publica no Jenkins.
-                // Os caminhos no XML sao relativos a cada pacote, por isso as
-                // pastas de codigo-fonte sao listadas uma a uma.
-                recordCoverage(
-                    tools: [[parser: 'COBERTURA', pattern: 'reports/coverage.xml']],
-                    id: 'coverage',
-                    name: 'Cobertura de Testes',
-                    sourceDirectories: [
-                        [path: 'domain'],
-                        [path: 'use_cases'],
-                        [path: 'adapters'],
-                        [path: 'infra'],
-                    ],
-                    qualityGates: [
-                        [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'UNSTABLE'],
-                    ]
-                )
+        stage('Security Scan') {
+            parallel {
+                stage('Trivy') {
+                    steps {
+                        // Marca o build como UNSTABLE se houver vulnerabilidade HIGH/CRITICAL com correcao disponivel.
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                            sh '''
+                                mkdir -p reports
+                                set +e
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v trivy-cache:/root/.cache \
+                                    aquasec/trivy:latest image \
+                                    --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+                                    "$IMAGE" > reports/trivy.txt
+                                status=$?
+                                cat reports/trivy.txt
+                                # Mesmo resultado em JUnit (template que ja vem na imagem do Trivy).
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v trivy-cache:/root/.cache \
+                                    aquasec/trivy:latest image \
+                                    --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 \
+                                    --format template --template "@/contrib/junit.tpl" \
+                                    "$IMAGE" > reports/trivy-junit.xml || true
+                                exit $status
+                            '''
+                        }
+                    }
+                }
+                stage('Grype') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                            sh '''
+                                mkdir -p reports
+                                set +e
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v grype-cache:/root/.cache \
+                                    anchore/grype:latest "docker:$IMAGE" \
+                                    --only-fixed --fail-on high > reports/grype.txt
+                                status=$?
+                                cat reports/grype.txt
+                                # Mesmo resultado em JUnit (JSON do Grype convertido com jq).
+                                docker run --rm \
+                                    -v /var/run/docker.sock:/var/run/docker.sock \
+                                    -v grype-cache:/root/.cache \
+                                    anchore/grype:latest "docker:$IMAGE" \
+                                    --only-fixed -o json > reports/grype.json || true
+                                docker run --rm -i ghcr.io/jqlang/jq:latest -r "$(cat tools/junit/grype.jq)" < reports/grype.json > reports/grype-junit.xml || true
+                                exit $status
+                            '''
+                        }
+                    }
+                }
             }
         }
 
@@ -68,7 +123,26 @@ pipeline {
 
     post {
         always {
-            junit allowEmptyResults: true, testResults: 'reports/junit.xml'
+            // Relatorio unico no fim: testes, scans (Hadolint, Trivy, Grype) e cobertura.
+            // *junit*.xml pega o junit.xml dos testes e os <scan>-junit.xml dos scans.
+            junit allowEmptyResults: true, testResults: 'reports/*junit*.xml'
+            // Le o coverage.xml gerado no stage Test e publica no Jenkins.
+            // Os caminhos no XML sao relativos a cada pacote, por isso as
+            // pastas de codigo-fonte sao listadas uma a uma.
+            recordCoverage(
+                tools: [[parser: 'COBERTURA', pattern: 'reports/coverage.xml']],
+                id: 'coverage',
+                name: 'Cobertura de Testes',
+                sourceDirectories: [
+                    [path: 'domain'],
+                    [path: 'use_cases'],
+                    [path: 'adapters'],
+                    [path: 'infra'],
+                ],
+                qualityGates: [
+                    [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'UNSTABLE'],
+                ]
+            )
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
         }
         success {
