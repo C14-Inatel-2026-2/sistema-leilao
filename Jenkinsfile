@@ -11,7 +11,6 @@ pipeline {
     stages {
         stage('Lint Dockerfile (Hadolint)') {
             steps {
-                // Hadolint roda em container: nao exige instalacao no agente.
                 catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     sh '''
                         mkdir -p reports
@@ -19,7 +18,6 @@ pipeline {
                         docker run --rm -i hadolint/hadolint hadolint --failure-threshold warning - < Dockerfile > reports/hadolint.txt
                         status=$?
                         cat reports/hadolint.txt
-                        # Mesmo resultado em JUnit, para entrar no relatorio de testes (post).
                         docker run --rm -i hadolint/hadolint hadolint --no-fail -f json - < Dockerfile > reports/hadolint.json || true
                         docker run --rm -i ghcr.io/jqlang/jq:latest -r "$(cat tools/junit/hadolint.jq)" < reports/hadolint.json > reports/hadolint-junit.xml || true
                         exit $status
@@ -52,7 +50,6 @@ pipeline {
             parallel {
                 stage('Trivy') {
                     steps {
-                        // Marca o build como UNSTABLE se houver vulnerabilidade HIGH/CRITICAL com correcao disponivel.
                         catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                             sh '''
                                 mkdir -p reports
@@ -65,7 +62,6 @@ pipeline {
                                     "$IMAGE" > reports/trivy.txt
                                 status=$?
                                 cat reports/trivy.txt
-                                # Mesmo resultado em JUnit (template que ja vem na imagem do Trivy).
                                 docker run --rm \
                                     -v /var/run/docker.sock:/var/run/docker.sock \
                                     -v trivy-cache:/root/.cache \
@@ -91,7 +87,6 @@ pipeline {
                                     --only-fixed --fail-on high > reports/grype.txt
                                 status=$?
                                 cat reports/grype.txt
-                                # Mesmo resultado em JUnit (JSON do Grype convertido com jq).
                                 docker run --rm \
                                     -v /var/run/docker.sock:/var/run/docker.sock \
                                     -v grype-cache:/root/.cache \
@@ -123,8 +118,6 @@ pipeline {
 
     post {
         always {
-            // Relatorio unico no fim: testes, scans (Hadolint, Trivy, Grype) e cobertura.
-            // *junit*.xml pega o junit.xml dos testes e os <scan>-junit.xml dos scans.
             junit allowEmptyResults: true, testResults: 'reports/*junit*.xml'
             // Le o coverage.xml gerado no stage Test e publica no Jenkins.
             // Os caminhos no XML sao relativos a cada pacote, por isso as
