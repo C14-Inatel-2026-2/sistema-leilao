@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install --no-root --with dev \
+    && pip install --no-cache-dir --upgrade "setuptools>=80.10.2" \
     && rm -rf /root/.cache/pypoetry /tmp/poetry_cache
 
 COPY . .
