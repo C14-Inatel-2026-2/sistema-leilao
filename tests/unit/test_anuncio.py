@@ -2,7 +2,7 @@
 tests/unit/test_anuncio.py
 
 Testes unitarios da entidade de dominio Anuncio.
-Sem Flask e sem banco. Mocks apenas nos colaboradores
+Sem framework web e sem banco. Mocks apenas nos colaboradores
 (repositorio de categoria e verificacao de lances).
 """
 

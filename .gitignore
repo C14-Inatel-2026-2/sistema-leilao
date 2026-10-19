@@ -34,6 +34,7 @@ ENV/
 .coverage
 .coverage.*
 htmlcov/
+reports/
 .tox/
 .nox/
 
@@ -42,7 +43,7 @@ htmlcov/
 .env.*
 !.env.example
 
-# Flask
+# Local instance / cache
 instance/
 
 # IDE

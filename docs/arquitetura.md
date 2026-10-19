@@ -12,7 +12,7 @@ O sistema adota **Clean Architecture** combinada com **Event-Driven Architecture
 
 ```text
 domain/          → Entidades e regras puras (Usuario, Anuncio, Leilao, Lance, Categoria)
-                   Sem dependência de Flask ou SQLAlchemy — 100% testável isoladamente
+                   Sem dependência de FastAPI ou SQLAlchemy — 100% testável isoladamente
 
 use_cases/       → Casos de uso (CriarAnuncio, IniciarLeilao, DarLance, EncerrarLeilao)
 
@@ -21,8 +21,8 @@ adapters/
   events/        → Publisher/Subscriber de eventos de domínio
 
 infra/
-  flask_app/     → Rotas, controllers, serialização, autenticação (JWT)
-  db/            → Models SQLAlchemy, migrations (Flask-Migrate)
+  api/           → Rotas (APIRouter), schemas Pydantic, autenticação (JWT)
+  db/            → Models SQLAlchemy 2.0 (DeclarativeBase), migrations (Alembic)
   jobs/          → Jobs agendados de encerramento automático
 ```
 
@@ -37,7 +37,7 @@ O domínio reside no centro e **não conhece nenhuma camada externa**:
 [Eventos/Jobs]           [Infraestrutura e Rotas]
 ```
 
-A infraestrutura e os adaptadores conhecem o domínio; o domínio nunca importa Flask, SQLAlchemy ou Celery.
+A infraestrutura e os adaptadores conhecem o domínio; o domínio nunca importa FastAPI, SQLAlchemy ou Celery.
 
 ---
 
@@ -87,6 +87,8 @@ Dois lances quase simultâneos exigem tratamento real de condição de corrida. 
 
 O domínio define *quando* um lance é válido; a infraestrutura garante *atomicidade* na persistência.
 
+Rotas FastAPI definidas com `def` (síncronas) rodam no threadpool do Starlette; o SQLAlchemy síncrono com `psycopg2` permanece compatível com `with_for_update()`.
+
 ---
 
 ## Eventos de domínio
@@ -121,7 +123,7 @@ Publica LeilaoEncerrado
 
 **Escolha de tecnologia:**
 
-- **APScheduler** (MVP): scheduler embutido no processo Flask; setup simples, suficiente para encerramento periódico
+- **APScheduler** (MVP): scheduler iniciado no `lifespan` do FastAPI; cada job abre a própria `SessionLocal` e dispara casos de uso
 - **Celery + Redis** (evolução): fila de tarefas com worker separado; indicado se o volume de jobs, retries ou notificações crescer
 
 Em ambos os casos, o job **não contém regra de negócio** — apenas dispara casos de uso já definidos no domínio.
@@ -130,9 +132,9 @@ Em ambos os casos, o job **não contém regra de negócio** — apenas dispara c
 
 ## Exceções de domínio
 
-O domínio deve sinalizar violação de regra com uma hierarquia única (`DomainError` e subclasses), para a API mapear tudo a um payload `{ "codigo", "mensagem" }` sem tratar `ValueError` genérico.
+O domínio sinaliza violação de regra com uma hierarquia única (`DomainError` e subclasses em `domain/exceptions.py`). Quando a API existir, um único `exception_handler(DomainError)` mapeia para payload `{ "codigo", "mensagem" }` sem tratar `ValueError` genérico.
 
-Isso **ainda não está unificado**. Inventário as-is, alvo e checklist do PR futuro: [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
+**Base unificada.** Códigos estáveis (`codigo`) ainda são incremento da camada HTTP: [`hierarquia-excecoes.md`](hierarquia-excecoes.md).
 
 ---
 
@@ -141,6 +143,4 @@ Isso **ainda não está unificado**. Inventário as-is, alvo e checklist do PR f
 - **Domínio isolado** permite trocar a camada de persistência sem alterar regra de negócio
 - **Repository pattern** desacopla casos de uso das implementações concretas de banco
 - **Eventos de domínio** permitem estender o sistema (notificações, histórico) sem acoplar módulos
-- **Testes de domínio puros** (sem banco, sem Flask) garantem cobertura das regras críticas de lance e transição de estado
-
----
+- **Testes de domínio puros** (sem banco, sem FastAPI) garantem cobertura das regras críticas de lance e transição de estado
