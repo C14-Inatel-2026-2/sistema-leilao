@@ -48,6 +48,15 @@ omit = ["tests/*"]
 # (/app), e o Jenkins rejeita caminhos fora do seu workspace.
 relative_files = true
 
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+# Regras que apontam erros reais (sintaxe, nomes indefinidos, imports nao
+# usados), e nao preferencias de estilo. Explicitas para nao mudarem com a
+# versao do Ruff.
+select = ["E4", "E7", "E9", "F"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
