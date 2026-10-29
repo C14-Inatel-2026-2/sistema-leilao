@@ -32,12 +32,16 @@ pipeline {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     // O codigo vai por stdin (tar), como o Dockerfile no Hadolint:
                     // montar o workspace (-v) nao funciona com o Jenkins em container.
+                    // Verifica lint (ruff check) e formatacao (ruff format --check).
                     sh '''
                         mkdir -p reports
                         set +e
                         tar -cf - pyproject.toml domain use_cases adapters infra tests \
                             | docker run --rm -i --entrypoint sh "$RUFF_IMAGE" -c \
-                                'mkdir /src && tar -xf - -C /src && cd /src && ruff check --no-cache --output-format concise .' \
+                                'mkdir /src && tar -xf - -C /src && cd /src \
+                                 && ruff check --no-cache --output-format concise . 2>&1; lint=$?; \
+                                 ruff format --no-cache --check . 2>&1; fmt=$?; \
+                                 exit $((lint | fmt))' \
                             > reports/ruff.txt
                         status=$?
                         cat reports/ruff.txt

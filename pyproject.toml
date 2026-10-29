@@ -29,6 +29,7 @@ python-multipart = ">=0.0.30"
 pytest = "^8.3"
 pytest-cov = "^6.0"
 httpx = "^0.28"
+ruff = "0.17.3"
 
 [tool.poetry.group.celery]
 optional = true
@@ -50,12 +51,20 @@ relative_files = true
 
 [tool.ruff]
 target-version = "py311"
+line-length = 79
+# migrations: codigo gerado pelo Alembic. tools: scripts auxiliares, fora do
+# pipeline (o stage de lint analisa so o codigo da aplicacao e os testes).
+# docs: o preview formataria codigo dentro dos .md, inclusive as transcricoes
+# de conversas com IA, que sao registros literais.
+extend-exclude = ["migrations", "tools", "docs"]
 
 [tool.ruff.lint]
-# Regras que apontam erros reais (sintaxe, nomes indefinidos, imports nao
-# usados), e nao preferencias de estilo. Explicitas para nao mudarem com a
-# versao do Ruff.
-select = ["E4", "E7", "E9", "F"]
+preview = true
+select = ["I", "F", "E", "W", "PL", "PT"]
+
+[tool.ruff.format]
+preview = true
+quote-style = "single"
 
 [build-system]
 requires = ["poetry-core"]
