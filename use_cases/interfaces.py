@@ -28,5 +28,5 @@ class UsuarioRepository(Protocol):
 
 class PasswordHasher(Protocol):
     def gerar_hash(self, senha: str) -> str:
-        """Retorna o hash da senha em texto puro (bcrypt, argon2... e detalhe da infra)."""
+        """Gera o hash da senha em texto puro; o algoritmo fica na infra."""
         ...
