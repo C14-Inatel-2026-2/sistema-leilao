@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+from unittest.mock import Mock, patch
 from uuid import uuid4
-from unittest.mock import Mock
-from unittest.mock import patch
+
 import pytest
 
-from domain.leilao import Leilao, Lance, StatusLeilao
-from domain.exceptions import LeilaoInvalidoError, EstadoLeilaoInvalidoError, LanceInvalidoError
+from domain.exceptions import (
+    EstadoLeilaoInvalidoError,
+)
+from domain.leilao import Lance, Leilao, StatusLeilao
 
 
 def leilao_valido(**overrides):
@@ -29,13 +31,13 @@ def test_funcao_encerrar_com_sucesso():
     leilao_id = uuid4()
     comprador_id = uuid4()
     data_inicio = datetime(2023, 4, 11, 0, 0, 0, tzinfo=timezone.utc)
-    data_final = datetime(2023, 8,16 , 0, 0, 0, tzinfo=timezone.utc)
+    data_final = datetime(2023, 8, 16, 0, 0, 0, tzinfo=timezone.utc)
 
     lance_vencedor = Lance(
         leilao_id=leilao_id,
         comprador_id=comprador_id,
         valor=Decimal('150.00'),
-        criado_em=datetime(2023, 7, 13, 21, 0, 0, tzinfo=timezone.utc)
+        criado_em=datetime(2023, 7, 13, 21, 0, 0, tzinfo=timezone.utc),
     )
 
     leilao = leilao_valido(
@@ -43,7 +45,7 @@ def test_funcao_encerrar_com_sucesso():
         data_inicio=data_inicio,
         data_final=data_final,
         status=StatusLeilao.ABERTO,
-        lances=[lance_vencedor]
+        lances=[lance_vencedor],
     )
 
     momento_encerramento = datetime(2023, 9, 24, 0, 0, 1, tzinfo=timezone.utc)
@@ -53,10 +55,12 @@ def test_funcao_encerrar_com_sucesso():
     assert leilao.vencedor_id == comprador_id
     assert leilao.valor_arremate == Decimal('150.00')
 
+
 def test_marcar_como_pago():
     leilao = leilao_valido(status=StatusLeilao.PAGO)
     with pytest.raises(EstadoLeilaoInvalidoError):
         leilao.marcar_como_pago()
+
 
 def test_encerrar_leilao_sem_lances_publica_cancelamento():
     mock_publisher = Mock()
@@ -66,7 +70,7 @@ def test_encerrar_leilao_sem_lances_publica_cancelamento():
         data_inicio=data_inicio,
         data_final=data_final,
         status=StatusLeilao.ABERTO,
-        lances=[]
+        lances=[],
     )
 
     momento_encerramento = datetime(2005, 1, 2, 0, 0, 1, tzinfo=timezone.utc)
@@ -74,17 +78,14 @@ def test_encerrar_leilao_sem_lances_publica_cancelamento():
 
     if leilao.status == StatusLeilao.CANCELADO:
         mock_publisher.publicar(
-            evento="LeilaoCancelado",
-            leilao_id=leilao.id,
-            motivo="sem_lances"
+            evento='LeilaoCancelado', leilao_id=leilao.id, motivo='sem_lances'
         )
 
     assert leilao.status == StatusLeilao.CANCELADO
     mock_publisher.publicar.assert_called_once_with(
-        evento="LeilaoCancelado",
-        leilao_id=leilao.id,
-        motivo="sem_lances"
+        evento='LeilaoCancelado', leilao_id=leilao.id, motivo='sem_lances'
     )
+
 
 def test_rejeita_encerrar_leilao_antes_da_data_final_com_mock_relogio():
     data_inicio = datetime(1992, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -92,17 +93,17 @@ def test_rejeita_encerrar_leilao_antes_da_data_final_com_mock_relogio():
     leilao = leilao_valido(
         data_inicio=data_inicio,
         data_final=data_final,
-        status=StatusLeilao.ABERTO
+        status=StatusLeilao.ABERTO,
     )
 
     # Simulação para horário do servidor
     horario_simulado = datetime(1992, 1, 5, 0, 0, 0, tzinfo=timezone.utc)
 
-    with patch("domain.leilao.datetime") as mock_datetime:
+    with patch('domain.leilao.datetime') as mock_datetime:
         mock_datetime.now.return_value = horario_simulado
 
         with pytest.raises(EstadoLeilaoInvalidoError):
-            leilao.encerrar()  # Chama sem argumentos; ele vai consultar o relógio mockado!
+            # Chama sem argumentos; ele vai consultar o relógio mockado!
+            leilao.encerrar()
 
         mock_datetime.now.assert_called_once_with(timezone.utc)
-

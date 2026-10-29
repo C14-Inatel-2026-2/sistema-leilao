@@ -1,7 +1,8 @@
 """
 domain/exceptions.py
 
-Excecoes de dominio, compartilhadas entre as entidades (Usuario, Anuncio, Leilao...).
+Excecoes de dominio, compartilhadas entre as entidades (Usuario, Anuncio,
+Leilao...).
 
 Usar excecoes especificas (em vez de ValueError generico) deixa explicito, no
 handler HTTP da camada de infra, que a rejeicao veio de uma regra de
@@ -18,7 +19,7 @@ class UsuarioInvalidoError(DomainError):
 
 
 class EmailJaCadastradoError(DomainError):
-    """Levantada ao cadastrar um Usuario com email que ja pertence a outra conta."""
+    """Levantada ao cadastrar um Usuario com email ja usado por outra conta."""
 
 
 class AnuncioInvalidoError(DomainError):
@@ -26,16 +27,16 @@ class AnuncioInvalidoError(DomainError):
 
 
 class CategoriaInvalidaError(DomainError):
-    """Levantada quando os dados de uma Categoria violam uma regra de negocio."""
+    """Levantada quando os dados de uma Categoria violam regra de negocio."""
 
 
 class LeilaoInvalidoError(DomainError):
-    """Dados de criacao do leilao invalidos (preco negativo, datas incorretas, etc.)."""
+    """Dados de criacao do leilao invalidos (preco negativo, datas, etc.)."""
 
 
 class EstadoLeilaoInvalidoError(DomainError):
-    """Tentativa de transicao de estado proibida (ex: lance em leilao cancelado)."""
+    """Transicao de estado proibida (ex: lance em leilao cancelado)."""
 
 
 class LanceInvalidoError(DomainError):
-    """Lance rejeitado por regras de negocio (valor baixo, vendedor dando lance, etc.)."""
+    """Lance rejeitado por regra de negocio (valor baixo, vendedor, etc.)."""

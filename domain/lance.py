@@ -35,24 +35,30 @@ class Lance:
     comprador_id: UUID
     valor: Decimal
     id: UUID = field(default_factory=uuid4)
-    criado_em: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    criado_em: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     def __post_init__(self) -> None:
         self.validar_valor(self.valor)
         if self.comprador_id is None:
-            raise LanceInvalidoError("o lance precisa de um comprador")
+            raise LanceInvalidoError('o lance precisa de um comprador')
         if self.criado_em.tzinfo is None:
             raise LanceInvalidoError(
-                "o momento do lance precisa ter fuso horario (use datetime com tzinfo)"
+                'o momento do lance precisa ter fuso horario '
+                '(use datetime com tzinfo)'
             )
 
     @staticmethod
     def validar_valor(valor: Decimal) -> None:
-        """Usada tambem por Leilao.validar_lance, antes de comparar com o minimo exigido."""
-        # float e recusado de proposito: 0.1 + 0.2 != 0.3 nao pode decidir um leilao.
+        """Usada tambem por Leilao.validar_lance, antes do minimo exigido."""
+        # float e recusado de proposito: 0.1 + 0.2 != 0.3 nao pode decidir
+        # um leilao.
         if not isinstance(valor, Decimal):
-            raise LanceInvalidoError("o valor do lance deve ser Decimal")
+            raise LanceInvalidoError('o valor do lance deve ser Decimal')
         if not valor.is_finite():
-            raise LanceInvalidoError("o valor do lance deve ser um numero finito")
-        if valor <= Decimal("0"):
-            raise LanceInvalidoError("o valor do lance deve ser maior que 0")
+            raise LanceInvalidoError(
+                'o valor do lance deve ser um numero finito'
+            )
+        if valor <= Decimal('0'):
+            raise LanceInvalidoError('o valor do lance deve ser maior que 0')

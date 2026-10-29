@@ -26,9 +26,9 @@ class CategoriaRepository(Protocol):
 
 def anuncio_valido(**overrides):
     dados = dict(
-        titulo="Notebook usado",
-        descricao="16 GB RAM, SSD 512 GB",
-        preco_referencia=Decimal("1500.00"),
+        titulo='Notebook usado',
+        descricao='16 GB RAM, SSD 512 GB',
+        preco_referencia=Decimal('1500.00'),
         categoria_id=uuid4(),
         vendedor_id=uuid4(),
     )
@@ -37,9 +37,9 @@ def anuncio_valido(**overrides):
 
 
 @pytest.mark.parametrize(
-    "preco",
-    [Decimal("0"), Decimal("-1.00")],
-    ids=["zero", "negativo"],
+    'preco',
+    [Decimal('0'), Decimal('-1.00')],
+    ids=['zero', 'negativo'],
 )
 def test_rejeita_preco_referencia_nao_positivo(preco):
     with pytest.raises(AnuncioInvalidoError):
@@ -47,7 +47,7 @@ def test_rejeita_preco_referencia_nao_positivo(preco):
 
 
 def test_associar_leilao_quando_categoria_ativa():
-    categoria = Categoria(nome="Eletronicos", ativa=True)
+    categoria = Categoria(nome='Eletronicos', ativa=True)
     repositorio = Mock(spec=CategoriaRepository)
     repositorio.buscar_por_id.return_value = categoria
 
@@ -71,7 +71,9 @@ def test_rejeita_editar_anuncio_quando_leilao_tem_lances():
     leilao.possui_lances.return_value = True
 
     with pytest.raises(AnuncioInvalidoError):
-        anuncio.editar(titulo="Titulo alterado", leilao_com_lances=leilao.possui_lances())
+        anuncio.editar(
+            titulo='Titulo alterado', leilao_com_lances=leilao.possui_lances()
+        )
 
     leilao.possui_lances.assert_called_once()
     assert anuncio.titulo == titulo_original

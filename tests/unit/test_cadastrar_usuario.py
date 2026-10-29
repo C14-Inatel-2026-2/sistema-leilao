@@ -17,7 +17,7 @@ from domain.usuario import PapelUsuario, Usuario
 from use_cases.cadastrar_usuario import CadastrarUsuario
 from use_cases.interfaces import PasswordHasher, UsuarioRepository
 
-SENHA_VALIDA = "senhaForte123"
+SENHA_VALIDA = 'senhaForte123'
 
 
 @pytest.fixture
@@ -32,31 +32,33 @@ def hasher():
 
 def test_cadastra_usuario_salvando_apenas_o_hash_da_senha(repositorio, hasher):
     repositorio.buscar_por_email.return_value = None
-    hasher.gerar_hash.return_value = "hash-gerado"
+    hasher.gerar_hash.return_value = 'hash-gerado'
     caso_de_uso = CadastrarUsuario(repositorio, hasher)
 
     usuario = caso_de_uso.executar(
-        nome="Teo Marques", email="teo@example.com", senha=SENHA_VALIDA
+        nome='Teo Marques', email='teo@example.com', senha=SENHA_VALIDA
     )
 
     hasher.gerar_hash.assert_called_once_with(SENHA_VALIDA)
     repositorio.salvar.assert_called_once_with(usuario)
-    assert usuario.senha_hash == "hash-gerado"
+    assert usuario.senha_hash == 'hash-gerado'
     assert usuario.papel == PapelUsuario.COMPRADOR
 
 
-def test_rejeita_email_ja_cadastrado_sem_gerar_hash_nem_salvar(repositorio, hasher):
+def test_rejeita_email_ja_cadastrado_sem_gerar_hash_nem_salvar(
+    repositorio, hasher
+):
     repositorio.buscar_por_email.return_value = Usuario(
-        nome="Outra Pessoa",
-        email="teo@example.com",
-        senha_hash="hash-existente",
+        nome='Outra Pessoa',
+        email='teo@example.com',
+        senha_hash='hash-existente',
         papel=PapelUsuario.VENDEDOR,
     )
     caso_de_uso = CadastrarUsuario(repositorio, hasher)
 
     with pytest.raises(EmailJaCadastradoError):
         caso_de_uso.executar(
-            nome="Teo Marques", email="teo@example.com", senha=SENHA_VALIDA
+            nome='Teo Marques', email='teo@example.com', senha=SENHA_VALIDA
         )
 
     hasher.gerar_hash.assert_not_called()
