@@ -24,6 +24,7 @@ pyjwt = "^2.14"
 pydantic = {extras = ["email"], version = "^2.10"}
 pydantic-settings = "^2.6"
 python-multipart = ">=0.0.30"
+bcrypt = "^5.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
