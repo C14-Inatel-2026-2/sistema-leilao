@@ -62,6 +62,11 @@ extend-exclude = ["migrations", "tools", "docs"]
 preview = true
 select = ["I", "F", "E", "W", "PL", "PT"]
 
+[tool.ruff.lint.isort]
+# Pacotes locais continuam first-party mesmo enquanto o modulo
+# importado ainda nao existe (testes da fase red do TDD).
+known-first-party = ["adapters", "domain", "infra", "use_cases"]
+
 [tool.ruff.format]
 preview = true
 quote-style = "single"
