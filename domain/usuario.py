@@ -31,6 +31,8 @@ class PapelUsuario(str, Enum):
 _EMAIL_REGEX = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 NOME_TAMANHO_MINIMO = 2
 SENHA_TAMANHO_MINIMO = 12
+# Em bytes, nao caracteres: limite do bcrypt, que nao aceita senhas maiores.
+SENHA_BYTES_MAXIMO = 72
 
 
 @dataclass
@@ -81,6 +83,10 @@ class Usuario:
             raise UsuarioInvalidoError(
                 'Senha precisa ter ao menos '
                 f'{SENHA_TAMANHO_MINIMO} caracteres.'
+            )
+        if len(senha.encode('utf-8')) > SENHA_BYTES_MAXIMO:
+            raise UsuarioInvalidoError(
+                f'Senha nao pode ultrapassar {SENHA_BYTES_MAXIMO} bytes.'
             )
         if senha.isalpha() or senha.isdigit():
             raise UsuarioInvalidoError(
