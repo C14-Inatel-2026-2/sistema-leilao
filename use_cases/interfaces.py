@@ -30,3 +30,7 @@ class PasswordHasher(Protocol):
     def gerar_hash(self, senha: str) -> str:
         """Gera o hash da senha em texto puro; o algoritmo fica na infra."""
         ...
+
+    def verificar(self, senha: str, senha_hash: str) -> bool:
+        """Indica se a senha em texto puro corresponde ao hash."""
+        ...

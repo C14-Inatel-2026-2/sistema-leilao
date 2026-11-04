@@ -45,12 +45,28 @@ def test_funcao_desativar():
 
 @pytest.mark.parametrize(
     'senha',
-    ['abc12345678', 'somenteletrasaqui', '123456789012'],
-    ids=['curta', 'somente-letras', 'somente-numeros'],
+    [
+        'abc12345678',
+        'somenteletrasaqui',
+        '123456789012',
+        'a' * 72 + '1',
+        'á' * 36 + '1',
+    ],
+    ids=[
+        'curta',
+        'somente-letras',
+        'somente-numeros',
+        'acima-de-72-bytes',
+        'acima-de-72-bytes-com-acentos',
+    ],
 )
-def test_rejeita_senha_fraca(senha):
+def test_rejeita_senha_fora_da_politica(senha):
     with pytest.raises(UsuarioInvalidoError):
         Usuario.validar_senha_em_texto_puro(senha)
+
+
+def test_aceita_senha_com_exatamente_72_bytes():
+    Usuario.validar_senha_em_texto_puro('a' * 71 + '1')
 
 
 def test_rejeita_email_invalido():
