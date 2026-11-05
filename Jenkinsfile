@@ -6,6 +6,7 @@ pipeline {
         GIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
         IMAGE = "${DOCKER_HUB_USER}/sistema-leilao:${GIT_SHA}"
         TEST_CONTAINER = "leilao-test-${GIT_SHA}"
+        RUFF_IMAGE = 'ghcr.io/astral-sh/ruff:0.17.3-alpine'
     }
 
     stages {
@@ -20,6 +21,34 @@ pipeline {
                         cat reports/hadolint.txt
                         docker run --rm -i hadolint/hadolint hadolint --no-fail -f json - < Dockerfile > reports/hadolint.json || true
                         docker run --rm -i ghcr.io/jqlang/jq:latest -r "$(cat tools/junit/hadolint.jq)" < reports/hadolint.json > reports/hadolint-junit.xml || true
+                        exit $status
+                    '''
+                }
+            }
+        }
+
+        stage('Lint Python (Ruff)') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    // O codigo vai por stdin (tar), como o Dockerfile no Hadolint:
+                    // montar o workspace (-v) nao funciona com o Jenkins em container.
+                    // Verifica lint (ruff check) e formatacao (ruff format --check).
+                    sh '''
+                        mkdir -p reports
+                        set +e
+                        tar -cf - pyproject.toml domain use_cases adapters infra tests \
+                            | docker run --rm -i --entrypoint sh "$RUFF_IMAGE" -c \
+                                'mkdir /src && tar -xf - -C /src && cd /src \
+                                 && ruff check --no-cache --output-format concise . 2>&1; lint=$?; \
+                                 ruff format --no-cache --check . 2>&1; fmt=$?; \
+                                 exit $((lint | fmt))' \
+                            > reports/ruff.txt
+                        status=$?
+                        cat reports/ruff.txt
+                        tar -cf - pyproject.toml domain use_cases adapters infra tests \
+                            | docker run --rm -i --entrypoint sh "$RUFF_IMAGE" -c \
+                                'mkdir /src && tar -xf - -C /src && cd /src && ruff check --no-cache --exit-zero --output-format junit .' \
+                            > reports/ruff-junit.xml || true
                         exit $status
                     '''
                 }

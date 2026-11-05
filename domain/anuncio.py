@@ -8,15 +8,16 @@ from uuid import UUID, uuid4
 
 from domain.exceptions import AnuncioInvalidoError
 
+
 class StatusAnuncio(str, Enum):
-    ATIVO = "ATIVO"
-    INATIVO = "INATIVO"
-    VENDIDO = "VENDIDO"
+    ATIVO = 'ATIVO'
+    INATIVO = 'INATIVO'
+    VENDIDO = 'VENDIDO'
 
 
 class TipoAnuncio(str, Enum):
-    VENDA_DIRETA = "VENDA_DIRETA"
-    LEILAO = "LEILAO"
+    VENDA_DIRETA = 'VENDA_DIRETA'
+    LEILAO = 'LEILAO'
 
 
 @dataclass
@@ -39,25 +40,24 @@ class Anuncio:
 
     def _validar_campos_basicos(self) -> None:
         if not self.titulo or not self.titulo.strip():
-            raise AnuncioInvalidoError("titulo obrigatorio")
+            raise AnuncioInvalidoError('titulo obrigatorio')
         if not self.descricao or not self.descricao.strip():
-            raise AnuncioInvalidoError("descricao obrigatoria")
+            raise AnuncioInvalidoError('descricao obrigatoria')
         if self.preco_referencia <= 0:
-            raise AnuncioInvalidoError("preco_referencia deve ser positivo")
+            raise AnuncioInvalidoError('preco_referencia deve ser positivo')
 
     def esta_ativo(self) -> bool:
         return self.status == StatusAnuncio.ATIVO
 
     def pode_iniciar_leilao(self) -> bool:
         return (
-            self.esta_ativo()
-            and self.leilao_atual_id is None
+            self.esta_ativo() and self.leilao_atual_id is None
             # opcional: exigir tipo LEILAO, ou permitir mudar tipo ao iniciar
         )
 
     def associar_leilao(self, leilao_id: UUID) -> None:
         if not self.pode_iniciar_leilao():
-            raise AnuncioInvalidoError("anuncio nao elegivel para leilao")
+            raise AnuncioInvalidoError('anuncio nao elegivel para leilao')
         self.leilao_atual_id = leilao_id
         self.tipo = TipoAnuncio.LEILAO
 
@@ -77,7 +77,7 @@ class Anuncio:
         leilao_com_lances: bool = False,
     ) -> None:
         if not self.pode_editar(leilao_com_lances=leilao_com_lances):
-            raise AnuncioInvalidoError("anuncio nao pode ser editado")
+            raise AnuncioInvalidoError('anuncio nao pode ser editado')
         if titulo is not None:
             self.titulo = titulo
         if descricao is not None:
@@ -88,10 +88,12 @@ class Anuncio:
 
     def inativar(self) -> None:
         if self.status == StatusAnuncio.VENDIDO:
-            raise AnuncioInvalidoError("anuncio vendido nao pode ser inativado")
+            raise AnuncioInvalidoError(
+                'anuncio vendido nao pode ser inativado'
+            )
         self.status = StatusAnuncio.INATIVO
 
     def marcar_vendido(self) -> None:
         if not self.esta_ativo():
-            raise AnuncioInvalidoError("apenas anuncio ativo pode ser vendido")
+            raise AnuncioInvalidoError('apenas anuncio ativo pode ser vendido')
         self.status = StatusAnuncio.VENDIDO

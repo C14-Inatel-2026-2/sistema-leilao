@@ -12,7 +12,9 @@ Nos testes unitarios, Mocks ocupam o lugar das implementacoes.
 from __future__ import annotations
 
 from typing import Protocol
+from uuid import UUID
 
+from domain.leilao import Leilao
 from domain.usuario import Usuario
 
 
@@ -28,5 +30,19 @@ class UsuarioRepository(Protocol):
 
 class PasswordHasher(Protocol):
     def gerar_hash(self, senha: str) -> str:
-        """Retorna o hash da senha em texto puro (bcrypt, argon2... e detalhe da infra)."""
+        """Gera o hash da senha em texto puro; o algoritmo fica na infra."""
         ...
+
+    def verificar(self, senha: str, senha_hash: str) -> bool:
+        """Indica se a senha em texto puro corresponde ao hash."""
+        ...
+
+
+class LeilaoRepository(Protocol):
+    def buscar_por_id(self, leilao_id: UUID) -> Leilao | None: ...
+
+    def buscar_com_lock(self, leilao_id: UUID) -> Leilao | None:
+        """Carrega o leilao travado (SELECT ... FOR UPDATE) ate o commit."""
+        ...
+
+    def salvar(self, leilao: Leilao) -> None: ...

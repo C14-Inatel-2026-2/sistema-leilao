@@ -9,7 +9,7 @@ from domain.categoria import Categoria
 
 
 def categoria_valida(**overrides):
-    dados = dict(nome="Eletronicos", ativa=True)
+    dados = dict(nome='Eletronicos', ativa=True)
     dados.update(overrides)
     return Categoria(**dados)
 

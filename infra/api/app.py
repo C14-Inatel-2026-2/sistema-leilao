@@ -1,9 +1,15 @@
-#implementação básica para teste de pipeline no deploy
+# implementação básica para teste de pipeline no deploy
 from fastapi import FastAPI
 
+from infra.api.routers import leiloes
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="Sistema de Leilão")
-    @app.get("/")
+    app = FastAPI(title='Sistema de Leilão')
+
+    @app.get('/')
     def health():
-        return {"status": "ok"}
+        return {'status': 'ok'}
+
+    app.include_router(leiloes.router)
     return app

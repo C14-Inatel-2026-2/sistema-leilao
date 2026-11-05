@@ -16,7 +16,9 @@ from use_cases.interfaces import PasswordHasher, UsuarioRepository
 
 
 class CadastrarUsuario:
-    def __init__(self, repositorio: UsuarioRepository, hasher: PasswordHasher) -> None:
+    def __init__(
+        self, repositorio: UsuarioRepository, hasher: PasswordHasher
+    ) -> None:
         self._repositorio = repositorio
         self._hasher = hasher
 
@@ -31,10 +33,12 @@ class CadastrarUsuario:
 
         # Checado antes do hash: gerar hash e caro de proposito (bcrypt).
         if self._repositorio.buscar_por_email(email) is not None:
-            raise EmailJaCadastradoError(f"Email ja cadastrado: {email!r}")
+            raise EmailJaCadastradoError(f'Email ja cadastrado: {email!r}')
 
         senha_hash = self._hasher.gerar_hash(senha)
-        usuario = Usuario(nome=nome, email=email, senha_hash=senha_hash, papel=papel)
+        usuario = Usuario(
+            nome=nome, email=email, senha_hash=senha_hash, papel=papel
+        )
 
         self._repositorio.salvar(usuario)
         return usuario
