@@ -40,3 +40,7 @@ class EstadoLeilaoInvalidoError(DomainError):
 
 class LanceInvalidoError(DomainError):
     """Lance rejeitado por regra de negocio (valor baixo, vendedor, etc.)."""
+
+
+class LeilaoNaoEncontradoError(DomainError):
+    """O leilao informado nao existe (a camada HTTP traduz para 404)."""
