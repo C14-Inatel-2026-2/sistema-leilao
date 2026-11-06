@@ -22,6 +22,10 @@ class EmailJaCadastradoError(DomainError):
     """Levantada ao cadastrar um Usuario com email ja usado por outra conta."""
 
 
+class CredenciaisInvalidasError(DomainError):
+    """Login recusado, sem revelar se o email existe ou a conta esta ativa."""
+
+
 class AnuncioInvalidoError(DomainError):
     """Levantada quando os dados de um Anuncio violam uma regra de negocio."""
 
