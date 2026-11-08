@@ -1,5 +1,12 @@
 FROM python:3.11-slim
 
+# Correcao temporaria: CVE-2026-76844 e CVE-2026-85091 (HIGH) no zlib1g.
+# Remover quando a python:3.11-slim oficial ja trouxer a versao +deb13u1.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --only-upgrade --no-install-recommends zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
