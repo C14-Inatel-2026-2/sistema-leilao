@@ -48,8 +48,8 @@ class Usuario:
     )
 
     def __post_init__(self) -> None:
-        self._validar_nome(self.nome)
-        self._validar_email(self.email)
+        self.validar_nome(self.nome)
+        self.validar_email(self.email)
         if not self.senha_hash:
             raise UsuarioInvalidoError(
                 'Usuario precisa de senha_hash definido '
@@ -57,7 +57,7 @@ class Usuario:
             )
 
     @staticmethod
-    def _validar_nome(nome: str) -> None:
+    def validar_nome(nome: str) -> None:
         if not nome or not nome.strip():
             raise UsuarioInvalidoError('Nome nao pode ser vazio.')
         if len(nome.strip()) < NOME_TAMANHO_MINIMO:
@@ -66,7 +66,7 @@ class Usuario:
             )
 
     @staticmethod
-    def _validar_email(email: str) -> None:
+    def validar_email(email: str) -> None:
         if not email or not _EMAIL_REGEX.match(email):
             raise UsuarioInvalidoError(f'Email invalido: {email!r}')
 

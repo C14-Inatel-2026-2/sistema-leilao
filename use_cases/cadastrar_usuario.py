@@ -29,9 +29,12 @@ class CadastrarUsuario:
         senha: str,
         papel: PapelUsuario = PapelUsuario.COMPRADOR,
     ) -> Usuario:
+        # Tudo o que pode rejeitar o cadastro vem antes do hash: gerar hash
+        # e caro de proposito (bcrypt), e dado invalido nao precisa de banco.
+        Usuario.validar_nome(nome)
+        Usuario.validar_email(email)
         Usuario.validar_senha_em_texto_puro(senha)
 
-        # Checado antes do hash: gerar hash e caro de proposito (bcrypt).
         if self._repositorio.buscar_por_email(email) is not None:
             raise EmailJaCadastradoError(f'Email ja cadastrado: {email!r}')
 
