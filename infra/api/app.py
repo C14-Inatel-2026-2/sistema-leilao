@@ -1,7 +1,7 @@
 # implementação básica para teste de pipeline no deploy
 from fastapi import FastAPI
 
-from infra.api.routers import auth, leiloes
+from infra.api.routers import anuncios, auth, leiloes
 
 
 def create_app() -> FastAPI:
@@ -13,4 +13,5 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(leiloes.router)
+    app.include_router(anuncios.router)
     return app
