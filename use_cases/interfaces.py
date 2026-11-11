@@ -11,6 +11,8 @@ Nos testes unitarios, Mocks ocupam o lugar das implementacoes.
 
 from __future__ import annotations
 
+from datetime import datetime
+from decimal import Decimal
 from typing import Protocol
 from uuid import UUID
 
@@ -73,3 +75,29 @@ class AnuncioRepository(Protocol):
     ) -> list[Anuncio]: ...
 
     def salvar(self, anuncio: Anuncio) -> None: ...
+
+
+class AuditoriaRepository(Protocol):
+    """Porta para auditoria de leilões."""
+
+    def salvar_lance(
+        self,
+        leilao_id: UUID,
+        lance_id: UUID,
+        usuario_id: UUID,
+        valor: Decimal,
+        data_hora: datetime,
+    ) -> None:
+        """Registra uma ação de lance realizado para auditoria/histórico."""
+        ...
+
+    def salvar_encerramento(
+        self,
+        leilao_id: UUID,
+        vencedor_id: UUID | None,
+        valor_final: Decimal | None,
+        data_encerramento: datetime,
+        motivo: str | None = None,
+    ) -> None:
+        """Registra o encerramento do leilão e o resultado da apuração."""
+        ...
