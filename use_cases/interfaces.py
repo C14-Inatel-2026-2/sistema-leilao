@@ -19,6 +19,10 @@ from domain.usuario import Usuario
 
 
 class UsuarioRepository(Protocol):
+    def buscar_por_id(self, usuario_id: UUID) -> Usuario | None:
+        """Retorna o Usuario com o id informado, ou None se nao existir."""
+        ...
+
     def buscar_por_email(self, email: str) -> Usuario | None:
         """Retorna o Usuario com o email informado, ou None se nao existir."""
         ...
