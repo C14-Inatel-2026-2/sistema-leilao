@@ -7,7 +7,7 @@ from use_cases.interfaces import AuditoriaRepository
 def handle_leilao_encerrado(
     event: LeilaoEncerrado, repo: AuditoriaRepository
 ) -> None:
-    """Handler que recebe o evento LeilaoEncerrado e delega a gravação ao repositório de auditoria."""
+    """Recebe LeilaoEncerrado e delega a gravação à auditoria."""
     repo.salvar_encerramento(
         leilao_id=event.leilao_id,
         vencedor_id=event.vencedor_id,

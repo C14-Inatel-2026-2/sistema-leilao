@@ -7,10 +7,11 @@ from use_cases.interfaces import AuditoriaRepository
 def handle_lance_realizado(
     event: LanceRealizado, repo: AuditoriaRepository
 ) -> None:
-    """Handler que recebe o evento LanceRealizado e delega a gravação ao repositório de auditoria. """
+    """Recebe LanceRealizado e delega a gravação à auditoria."""
     repo.salvar_lance(
         leilao_id=event.leilao_id,
         lance_id=event.lance_id,
         usuario_id=event.usuario_id,
         valor=event.valor,
         data_hora=event.data_hora,
+    )
