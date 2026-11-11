@@ -14,6 +14,8 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
+from domain.anuncio import Anuncio, StatusAnuncio, TipoAnuncio
+from domain.categoria import Categoria
 from domain.leilao import Leilao
 from domain.usuario import Usuario
 
@@ -50,3 +52,24 @@ class LeilaoRepository(Protocol):
         ...
 
     def salvar(self, leilao: Leilao) -> None: ...
+
+
+class CategoriaRepository(Protocol):
+    def buscar_por_id(self, categoria_id: UUID) -> Categoria | None: ...
+
+    def listar_ativas(self) -> list[Categoria]: ...
+
+
+class AnuncioRepository(Protocol):
+    def buscar_por_id(self, anuncio_id: UUID) -> Anuncio | None: ...
+
+    def listar(
+        self,
+        *,
+        categoria_id: UUID | None = None,
+        status: StatusAnuncio | None = None,
+        tipo: TipoAnuncio | None = None,
+        texto: str | None = None,
+    ) -> list[Anuncio]: ...
+
+    def salvar(self, anuncio: Anuncio) -> None: ...
