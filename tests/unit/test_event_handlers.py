@@ -161,4 +161,3 @@ def test_barramento_ignora_evento_sem_handler(repo_auditoria):
 
 def test_publisher_reexporta_modulo_de_eventos():
     assert publisher_publish is publish
-
