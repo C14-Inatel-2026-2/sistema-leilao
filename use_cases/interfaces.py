@@ -16,10 +16,17 @@ from decimal import Decimal
 from typing import Protocol
 from uuid import UUID
 
+from domain.anuncio import Anuncio, StatusAnuncio, TipoAnuncio
+from domain.categoria import Categoria
+from domain.leilao import Leilao
 from domain.usuario import Usuario
 
 
 class UsuarioRepository(Protocol):
+    def buscar_por_id(self, usuario_id: UUID) -> Usuario | None:
+        """Retorna o Usuario com o id informado, ou None se nao existir."""
+        ...
+
     def buscar_por_email(self, email: str) -> Usuario | None:
         """Retorna o Usuario com o email informado, ou None se nao existir."""
         ...
@@ -37,6 +44,37 @@ class PasswordHasher(Protocol):
     def verificar(self, senha: str, senha_hash: str) -> bool:
         """Indica se a senha em texto puro corresponde ao hash."""
         ...
+
+
+class LeilaoRepository(Protocol):
+    def buscar_por_id(self, leilao_id: UUID) -> Leilao | None: ...
+
+    def buscar_com_lock(self, leilao_id: UUID) -> Leilao | None:
+        """Carrega o leilao travado (SELECT ... FOR UPDATE) ate o commit."""
+        ...
+
+    def salvar(self, leilao: Leilao) -> None: ...
+
+
+class CategoriaRepository(Protocol):
+    def buscar_por_id(self, categoria_id: UUID) -> Categoria | None: ...
+
+    def listar_ativas(self) -> list[Categoria]: ...
+
+
+class AnuncioRepository(Protocol):
+    def buscar_por_id(self, anuncio_id: UUID) -> Anuncio | None: ...
+
+    def listar(
+        self,
+        *,
+        categoria_id: UUID | None = None,
+        status: StatusAnuncio | None = None,
+        tipo: TipoAnuncio | None = None,
+        texto: str | None = None,
+    ) -> list[Anuncio]: ...
+
+    def salvar(self, anuncio: Anuncio) -> None: ...
 
 
 class AuditoriaRepository(Protocol):
