@@ -74,6 +74,10 @@ def test_rejeita_email_invalido():
         usuario_valido(email='nao-e-um-email')
 
 
+def test_guarda_o_email_normalizado():
+    assert usuario_valido(email='Teo@Example.com').email == 'teo@example.com'
+
+
 def test_rejeita_usuario_sem_senha_hash():
     with pytest.raises(UsuarioInvalidoError):
         usuario_valido(senha_hash='')
