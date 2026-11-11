@@ -10,6 +10,7 @@ banco nem o algoritmo de hash concretos.
 
 from __future__ import annotations
 
+from domain.email import Email
 from domain.exceptions import EmailJaCadastradoError
 from domain.usuario import PapelUsuario, Usuario
 from use_cases.interfaces import PasswordHasher, UsuarioRepository
@@ -32,7 +33,8 @@ class CadastrarUsuario:
         # Tudo o que pode rejeitar o cadastro vem antes do hash: gerar hash
         # e caro de proposito (bcrypt), e dado invalido nao precisa de banco.
         Usuario.validar_nome(nome)
-        Usuario.validar_email(email)
+        # Normalizado antes da busca: 'Teo@X.com' acha a conta 'teo@x.com'.
+        email = Email(email)
         Usuario.validar_senha_em_texto_puro(senha)
 
         if self._repositorio.buscar_por_email(email) is not None:
