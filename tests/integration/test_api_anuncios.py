@@ -16,8 +16,6 @@ from domain.usuario import PapelUsuario, Usuario
 from infra.api.app import create_app
 from infra.api.dependencies import get_session
 
-AGORA = datetime(2026, 11, 11, 15, 0, tzinfo=timezone.utc)
-
 
 @pytest.fixture
 def vendedor(session):
@@ -46,7 +44,7 @@ def client(session):
 
 
 def _corpo(vendedor, categoria, **overrides):
-    inicio = AGORA + timedelta(days=1)
+    inicio = datetime.now(timezone.utc) + timedelta(days=1)
     corpo = {
         'titulo': 'Notebook',
         'descricao': 'Usado',
