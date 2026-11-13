@@ -52,25 +52,23 @@ agendado  →  aberto  →  encerrado  →  pago
 
 ## Requisitos
 
-Situação conferida no código da branch `dev`: ✅ implementado · 🚧 parcial · ⏳ planejado.
-
 ### Requisitos funcionais
 
-| ID | Requisito | Situação |
-|---|---|---|
-| RF01 | Cadastrar usuário com nome, e-mail único e senha (`POST /auth/register`) | ✅ |
-| RF02 | Autenticar usuário e emitir token JWT com expiração (`POST /auth/login`) | ✅ |
-| RF03 | Consultar os dados do usuário autenticado (`GET /auth/me`) | ✅ |
-| RF04 | Cadastrar anúncio com título, descrição, categoria e tipo (venda direta ou leilão) (`POST /anuncios`) | ✅ |
-| RF05 | Listar anúncios com filtros por categoria, status, tipo e texto (`GET /anuncios`) | ✅ |
-| RF06 | Configurar leilão com preço inicial, incremento mínimo e janela de início e fim | ✅ |
-| RF07 | Abrir automaticamente os leilões agendados quando chega o horário de início | 🚧 regra e caso de uso `IniciarLeilao` prontos; falta o job |
-| RF08 | Registrar lance respeitando status, janela temporal e incremento mínimo | 🚧 caso de uso `DarLance` pronto; falta a rota `POST /leiloes/{id}/lances` |
-| RF09 | Consultar o histórico de lances de um leilão em ordem cronológica (`GET /leiloes/{id}/lances`) | ✅ |
-| RF10 | Encerrar leilões automaticamente ao fim do prazo, definindo o vencedor pelo maior lance ou cancelando quando não há lances | 🚧 regra no domínio pronta; faltam o caso de uso `EncerrarLeilao` e o job |
-| RF11 | Registrar auditoria dos eventos `LanceRealizado` e `LeilaoEncerrado` | 🚧 eventos e handlers prontos; falta a persistência |
-| RF12 | Editar e inativar anúncios (somente o dono) | ⏳ |
-| RF13 | Registrar venda e pagamento simulado após o leilão (`pago`) | ⏳ |
+| ID | Requisito |
+|---|---|
+| RF01 | O sistema deve permitir o cadastro de usuários com nome, e-mail único e senha |
+| RF02 | O sistema deve autenticar o usuário e emitir um token de acesso com expiração |
+| RF03 | O usuário autenticado deve poder consultar os próprios dados |
+| RF04 | O vendedor deve poder cadastrar anúncios com título, descrição, categoria e tipo (venda direta ou leilão) |
+| RF05 | O sistema deve listar anúncios com filtros por categoria, status, tipo e texto |
+| RF06 | O vendedor deve poder configurar um leilão com preço inicial, incremento mínimo e data/hora de início e fim |
+| RF07 | O sistema deve abrir automaticamente os leilões agendados ao chegar o horário de início |
+| RF08 | O comprador deve poder dar lances em leilões abertos, respeitando a janela temporal e o incremento mínimo |
+| RF09 | O sistema deve exibir o histórico de lances de um leilão em ordem cronológica |
+| RF10 | O sistema deve encerrar os leilões automaticamente ao fim do prazo, definindo como vencedor o maior lance válido ou cancelando o leilão sem lances |
+| RF11 | O sistema deve registrar em auditoria os lances realizados e os encerramentos de leilão |
+| RF12 | O vendedor deve poder editar e inativar os próprios anúncios |
+| RF13 | O sistema deve registrar a venda e simular o pagamento após o encerramento do leilão |
 
 ### Requisitos não funcionais
 
