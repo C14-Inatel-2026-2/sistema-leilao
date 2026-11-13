@@ -135,7 +135,7 @@ Documentos de entrega acadêmica (Projeto C14): [`Projeto-C14/docs/`](Projeto-C1
 
 ## Refactorings
 
-Cada integrante aplicou pelo menos dois refactorings. Todos passaram pelo pipeline (lint, testes e security scan) verde antes e depois da mudança.
+Refactorings aplicados no projeto. Cada um passou pelo pipeline (lint, testes e security scan) verde antes e depois da mudança.
 
 | Autor | Smell | Refactoring aplicado | Por quê | PR |
 |---|---|---|---|---|
