@@ -52,6 +52,22 @@ def test_autentica_usuario_ativo_com_credenciais_validas(repositorio, hasher):
     hasher.verificar.assert_called_once_with(SENHA, 'hash-salvo')
 
 
+def test_busca_o_email_normalizado(repositorio, hasher):
+    repositorio.buscar_por_email.return_value = usuario_cadastrado()
+    hasher.verificar.return_value = True
+
+    AutenticarUsuario(repositorio, hasher).executar(' Teo@Example.com', SENHA)
+
+    repositorio.buscar_por_email.assert_called_once_with(EMAIL)
+
+
+def test_recusa_email_mal_formado_sem_consultar_o_banco(repositorio, hasher):
+    with pytest.raises(CredenciaisInvalidasError, match=MENSAGEM):
+        AutenticarUsuario(repositorio, hasher).executar('nao-e-email', SENHA)
+
+    repositorio.buscar_por_email.assert_not_called()
+
+
 def test_recusa_email_inexistente(repositorio, hasher):
     repositorio.buscar_por_email.return_value = None
 

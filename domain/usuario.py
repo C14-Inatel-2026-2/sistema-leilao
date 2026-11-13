@@ -14,12 +14,12 @@ do hash ser gerado, e depois armazena apenas o hash.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
+from domain.email import Email
 from domain.exceptions import UsuarioInvalidoError
 
 
@@ -28,7 +28,6 @@ class PapelUsuario(str, Enum):
     VENDEDOR = 'vendedor'
 
 
-_EMAIL_REGEX = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 NOME_TAMANHO_MINIMO = 2
 SENHA_TAMANHO_MINIMO = 12
 # Em bytes, nao caracteres: limite do bcrypt, que nao aceita senhas maiores.
@@ -38,7 +37,7 @@ SENHA_BYTES_MAXIMO = 72
 @dataclass
 class Usuario:
     nome: str
-    email: str
+    email: Email
     senha_hash: str
     papel: PapelUsuario
     id: UUID = field(default_factory=uuid4)
@@ -48,8 +47,9 @@ class Usuario:
     )
 
     def __post_init__(self) -> None:
-        self._validar_nome(self.nome)
-        self._validar_email(self.email)
+        self.validar_nome(self.nome)
+        # Aceita str por conveniencia, mas guarda sempre o Email normalizado.
+        self.email = Email(self.email)
         if not self.senha_hash:
             raise UsuarioInvalidoError(
                 'Usuario precisa de senha_hash definido '
@@ -57,18 +57,13 @@ class Usuario:
             )
 
     @staticmethod
-    def _validar_nome(nome: str) -> None:
+    def validar_nome(nome: str) -> None:
         if not nome or not nome.strip():
             raise UsuarioInvalidoError('Nome nao pode ser vazio.')
         if len(nome.strip()) < NOME_TAMANHO_MINIMO:
             raise UsuarioInvalidoError(
                 f'Nome precisa ter ao menos {NOME_TAMANHO_MINIMO} caracteres.'
             )
-
-    @staticmethod
-    def _validar_email(email: str) -> None:
-        if not email or not _EMAIL_REGEX.match(email):
-            raise UsuarioInvalidoError(f'Email invalido: {email!r}')
 
     @staticmethod
     def validar_senha_em_texto_puro(senha: str) -> None:

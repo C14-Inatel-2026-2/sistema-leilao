@@ -11,14 +11,22 @@ Nos testes unitarios, Mocks ocupam o lugar das implementacoes.
 
 from __future__ import annotations
 
+from datetime import datetime
+from decimal import Decimal
 from typing import Protocol
 from uuid import UUID
 
+from domain.anuncio import Anuncio, StatusAnuncio, TipoAnuncio
+from domain.categoria import Categoria
 from domain.leilao import Leilao
 from domain.usuario import Usuario
 
 
 class UsuarioRepository(Protocol):
+    def buscar_por_id(self, usuario_id: UUID) -> Usuario | None:
+        """Retorna o Usuario com o id informado, ou None se nao existir."""
+        ...
+
     def buscar_por_email(self, email: str) -> Usuario | None:
         """Retorna o Usuario com o email informado, ou None se nao existir."""
         ...
@@ -46,3 +54,50 @@ class LeilaoRepository(Protocol):
         ...
 
     def salvar(self, leilao: Leilao) -> None: ...
+
+
+class CategoriaRepository(Protocol):
+    def buscar_por_id(self, categoria_id: UUID) -> Categoria | None: ...
+
+    def listar_ativas(self) -> list[Categoria]: ...
+
+
+class AnuncioRepository(Protocol):
+    def buscar_por_id(self, anuncio_id: UUID) -> Anuncio | None: ...
+
+    def listar(
+        self,
+        *,
+        categoria_id: UUID | None = None,
+        status: StatusAnuncio | None = None,
+        tipo: TipoAnuncio | None = None,
+        texto: str | None = None,
+    ) -> list[Anuncio]: ...
+
+    def salvar(self, anuncio: Anuncio) -> None: ...
+
+
+class AuditoriaRepository(Protocol):
+    """Porta para auditoria de leilões."""
+
+    def salvar_lance(
+        self,
+        leilao_id: UUID,
+        lance_id: UUID,
+        usuario_id: UUID,
+        valor: Decimal,
+        data_hora: datetime,
+    ) -> None:
+        """Registra uma ação de lance realizado para auditoria/histórico."""
+        ...
+
+    def salvar_encerramento(
+        self,
+        leilao_id: UUID,
+        vencedor_id: UUID | None,
+        valor_final: Decimal | None,
+        data_encerramento: datetime,
+        motivo: str | None = None,
+    ) -> None:
+        """Registra o encerramento do leilão e o resultado da apuração."""
+        ...

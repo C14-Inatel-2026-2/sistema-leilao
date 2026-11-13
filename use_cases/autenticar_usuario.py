@@ -10,7 +10,8 @@ nao revelar quais emails estao cadastrados nem quais contas estao ativas.
 
 from __future__ import annotations
 
-from domain.exceptions import CredenciaisInvalidasError
+from domain.email import Email
+from domain.exceptions import CredenciaisInvalidasError, UsuarioInvalidoError
 from domain.usuario import Usuario
 from use_cases.interfaces import PasswordHasher, UsuarioRepository
 
@@ -23,6 +24,13 @@ class AutenticarUsuario:
         self._hasher = hasher
 
     def executar(self, email: str, senha: str) -> Usuario:
+        try:
+            email = Email(email)
+        except UsuarioInvalidoError as erro:
+            # Mesmo erro de sempre: o login nao explica por que recusou.
+            raise CredenciaisInvalidasError(
+                'Email ou senha invalidos.'
+            ) from erro
         usuario = self._repositorio.buscar_por_email(email)
 
         if (

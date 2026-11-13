@@ -12,7 +12,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from domain.exceptions import EmailJaCadastradoError
+from domain.exceptions import EmailJaCadastradoError, UsuarioInvalidoError
 from domain.usuario import PapelUsuario, Usuario
 from use_cases.cadastrar_usuario import CadastrarUsuario
 from use_cases.interfaces import PasswordHasher, UsuarioRepository
@@ -45,6 +45,18 @@ def test_cadastra_usuario_salvando_apenas_o_hash_da_senha(repositorio, hasher):
     assert usuario.papel == PapelUsuario.COMPRADOR
 
 
+def test_busca_email_repetido_ja_normalizado(repositorio, hasher):
+    repositorio.buscar_por_email.return_value = None
+    hasher.gerar_hash.return_value = 'hash-gerado'
+    caso_de_uso = CadastrarUsuario(repositorio, hasher)
+
+    caso_de_uso.executar(
+        nome='Teo Marques', email=' Teo@Example.com', senha=SENHA_VALIDA
+    )
+
+    repositorio.buscar_por_email.assert_called_once_with('teo@example.com')
+
+
 def test_rejeita_email_ja_cadastrado_sem_gerar_hash_nem_salvar(
     repositorio, hasher
 ):
@@ -61,5 +73,26 @@ def test_rejeita_email_ja_cadastrado_sem_gerar_hash_nem_salvar(
             nome='Teo Marques', email='teo@example.com', senha=SENHA_VALIDA
         )
 
+    hasher.gerar_hash.assert_not_called()
+    repositorio.salvar.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ('nome', 'email'),
+    [
+        ('Teo Marques', 'nao-e-um-email'),
+        ('T', 'teo@example.com'),
+    ],
+    ids=['email-invalido', 'nome-curto'],
+)
+def test_rejeita_dados_invalidos_sem_consultar_banco_nem_gerar_hash(
+    repositorio, hasher, nome, email
+):
+    caso_de_uso = CadastrarUsuario(repositorio, hasher)
+
+    with pytest.raises(UsuarioInvalidoError):
+        caso_de_uso.executar(nome=nome, email=email, senha=SENHA_VALIDA)
+
+    repositorio.buscar_por_email.assert_not_called()
     hasher.gerar_hash.assert_not_called()
     repositorio.salvar.assert_not_called()
