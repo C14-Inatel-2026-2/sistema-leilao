@@ -20,7 +20,9 @@ if not database_url:
         'DATABASE_URL is not set. Copy it from .env.example and add it to .env'
     )
 
-config.set_main_option('sqlalchemy.url', database_url)
+# ConfigParser trata % como interpolação. A senha do Render vem
+# percent-encoded na URL, então cada % precisa ir escapado.
+config.set_main_option('sqlalchemy.url', database_url.replace('%', '%%'))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

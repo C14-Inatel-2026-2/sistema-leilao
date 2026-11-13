@@ -27,6 +27,9 @@ RUN poetry install --no-root --with dev \
     && rm -rf /root/.cache/pypoetry /tmp/poetry_cache
 
 COPY . .
-RUN mkdir -p reports
+RUN mkdir -p reports \
+    && chmod 755 /app/docker-entrypoint.sh
 
-CMD ["pytest", "-q", "--cov", "--cov-report=term-missing", "--cov-report=xml:reports/coverage.xml", "--junitxml=reports/junit.xml"]
+# serve sobe a API. O CI passa o pytest na frente; o entrypoint só o executa.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["serve"]
