@@ -43,3 +43,4 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_auditoria_leiloes_tipo_evento'), table_name='auditoria_leiloes')
     op.drop_index(op.f('ix_auditoria_leiloes_leilao_id'), table_name='auditoria_leiloes')
     op.drop_table('auditoria_leiloes')
+
