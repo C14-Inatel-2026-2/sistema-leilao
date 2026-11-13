@@ -4,7 +4,23 @@ pipeline {
     environment {
         DOCKER_HUB_USER = 'phpaiva05'
         GIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-        IMAGE = "${DOCKER_HUB_USER}/sistema-leilao:${GIT_SHA}"
+        // Tipo da branch (feature, chore, fix, dev, main...). Em PR usa a branch de origem.
+        BRANCH_TYPE = sh(returnStdout: true, script: '''
+            branch="${CHANGE_BRANCH:-${BRANCH_NAME:-$(git rev-parse --abbrev-ref HEAD)}}"
+            branch="${branch#origin/}"
+            branch=$(printf '%s' "$branch" | sed 's#%2[Ff]#/#g')
+            case "$branch" in
+                */*) type="${branch%%/*}" ;;
+                *) type="$branch" ;;
+            esac
+            type=$(printf '%s' "$type" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9._-' '-')
+            type=$(printf '%s' "$type" | sed 's/^-*//;s/-*$//')
+            case "$type" in
+                ""|head) type=build ;;
+            esac
+            printf '%s' "$type"
+        ''').trim()
+        IMAGE = "${DOCKER_HUB_USER}/sistema-leilao:${BRANCH_TYPE}-${GIT_SHA}"
         TEST_CONTAINER = "leilao-test-${GIT_SHA}"
         RUFF_IMAGE = 'ghcr.io/astral-sh/ruff:0.17.3-alpine'
     }
