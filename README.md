@@ -50,6 +50,44 @@ agendado  →  aberto  →  encerrado  →  pago
 
 ---
 
+## Requisitos
+
+### Requisitos funcionais
+
+| ID | Requisito |
+|---|---|
+| RF01 | O sistema deve permitir o cadastro de usuários com nome, e-mail único e senha |
+| RF02 | O sistema deve autenticar o usuário e emitir um token de acesso com expiração |
+| RF03 | O usuário autenticado deve poder consultar os próprios dados |
+| RF04 | O vendedor deve poder cadastrar anúncios com título, descrição, categoria e tipo (venda direta ou leilão) |
+| RF05 | O sistema deve listar anúncios com filtros por categoria, status, tipo e texto |
+| RF06 | O vendedor deve poder configurar um leilão com preço inicial, incremento mínimo e data/hora de início e fim |
+| RF07 | O sistema deve abrir automaticamente os leilões agendados ao chegar o horário de início |
+| RF08 | O comprador deve poder dar lances em leilões abertos, respeitando a janela temporal e o incremento mínimo |
+| RF09 | O sistema deve exibir o histórico de lances de um leilão em ordem cronológica |
+| RF10 | O sistema deve encerrar os leilões automaticamente ao fim do prazo, definindo como vencedor o maior lance válido ou cancelando o leilão sem lances |
+| RF11 | O sistema deve registrar em auditoria os lances realizados e os encerramentos de leilão |
+| RF12 | O vendedor deve poder editar e inativar os próprios anúncios |
+| RF13 | O sistema deve registrar a venda e simular o pagamento após o encerramento do leilão |
+
+### Requisitos não funcionais
+
+| ID | Categoria | Requisito | Como é garantido |
+|---|---|---|---|
+| RNF01 | Segurança | Senhas nunca armazenadas em texto puro | Hash com bcrypt (`adapters/security/password_hasher.py`) |
+| RNF02 | Segurança | Rotas protegidas exigem token válido e expirável | JWT assinado, validado em `get_current_user`; resposta 401 |
+| RNF03 | Segurança | O login não revela se um e-mail está cadastrado | Mesma mensagem de erro para e-mail inexistente, senha errada ou conta inativa |
+| RNF04 | Segurança | Dependências e imagem sem vulnerabilidades conhecidas corrigíveis | Trivy e Grype no pipeline |
+| RNF05 | Consistência | Lances simultâneos no mesmo leilão não podem corromper o estado | Lock pessimista (`SELECT ... FOR UPDATE`) no repositório de leilão |
+| RNF06 | Manutenibilidade | Regras de negócio independentes de framework e banco | Clean Architecture: `domain` e `use_cases` não importam FastAPI nem SQLAlchemy |
+| RNF07 | Qualidade | Código testado e padronizado | Testes unitários e de integração (pytest), cobertura mínima de 70% no pipeline e Ruff |
+| RNF08 | Integração contínua | Toda mudança passa por verificação automática antes do merge | Jenkins: Hadolint, Ruff, build, testes, security scan e publicação da imagem |
+| RNF09 | Usabilidade da API | Contrato da API documentado e testável | OpenAPI gerado pelo FastAPI em `/docs` e `/redoc` |
+| RNF10 | Portabilidade | Mesmo ambiente em desenvolvimento, CI e produção | Imagem Docker; PostgreSQL via `docker compose` |
+| RNF11 | Consistência de dados | Esquema do banco versionado | Migrations com Alembic |
+
+---
+
 ## Atores
 
 | Ator | Papel |
