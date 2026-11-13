@@ -18,7 +18,7 @@ from uuid import UUID
 
 from domain.anuncio import Anuncio, StatusAnuncio, TipoAnuncio
 from domain.categoria import Categoria
-from domain.leilao import Leilao
+from domain.leilao import Leilao, StatusLeilao
 from domain.usuario import Usuario
 
 
@@ -52,6 +52,8 @@ class LeilaoRepository(Protocol):
     def buscar_com_lock(self, leilao_id: UUID) -> Leilao | None:
         """Carrega o leilao travado (SELECT ... FOR UPDATE) ate o commit."""
         ...
+
+    def listar_por_status(self, status: StatusLeilao) -> list[Leilao]: ...
 
     def salvar(self, leilao: Leilao) -> None: ...
 
