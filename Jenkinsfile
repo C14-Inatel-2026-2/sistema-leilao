@@ -181,7 +181,7 @@ import urllib.request
 
 user = os.environ["DOCKER_HUB_USER"]
 prefix = os.environ["BRANCH_TYPE"]
-pattern = re.compile(rf"^{re.escape(prefix)}-(\d{{4}})$")
+pattern = re.compile("^" + re.escape(prefix) + "-([0-9]{4})$")
 url = (
     "https://hub.docker.com/v2/repositories/"
     f"{user}/sistema-leilao/tags?page_size=100"
@@ -232,7 +232,7 @@ PY
                         remote="${DOCKER_HUB_USER}/sistema-leilao:${tag}"
                         docker tag "$LOCAL_IMAGE" "$remote"
                         docker push "$remote"
-                        printf '%s\n' "docker.io/${remote}" > .image-ref
+                        printf '%s\\n' "docker.io/${remote}" > .image-ref
                         echo "Imagem publicada: docker.io/${remote} (commit ${GIT_SHA})"
                         if [ "${BRANCH_NAME}" = "main" ] && [ -z "${CHANGE_ID:-}" ]; then
                             latest="${DOCKER_HUB_USER}/sistema-leilao:latest"
