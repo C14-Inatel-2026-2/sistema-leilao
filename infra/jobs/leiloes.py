@@ -1,0 +1,99 @@
+"""
+infra/jobs/leiloes.py
+
+Job periodico que abre leiloes agendados e encerra os vencidos. Nao tem
+regra de negocio: so escolhe os leiloes e dispara os casos de uso.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from datetime import datetime, timezone
+from uuid import UUID
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy.orm import Session
+
+from adapters.events import publish
+from adapters.repositories.leilao_repository import (
+    SQLAlchemyLeilaoRepository,
+)
+from domain.leilao import StatusLeilao
+from use_cases.encerrar_leilao import EncerrarLeilao
+from use_cases.iniciar_leilao import IniciarLeilao
+
+logger = logging.getLogger(__name__)
+
+AbrirSessao = Callable[[], AbstractContextManager[Session]]
+
+
+def _agora_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _abrir(session: Session, leilao_id: UUID, agora: datetime) -> None:
+    repositorio = SQLAlchemyLeilaoRepository(session)
+    IniciarLeilao(repositorio, relogio=lambda: agora).executar(leilao_id)
+    session.commit()
+
+
+def _encerrar(session: Session, leilao_id: UUID, agora: datetime) -> None:
+    EncerrarLeilao(
+        SQLAlchemyLeilaoRepository(session),
+        confirmar=session.commit,
+        publicar=publish,
+        relogio=lambda: agora,
+    ).executar(leilao_id)
+
+
+def processar_leiloes(
+    abrir_sessao: AbrirSessao, relogio: Callable[[], datetime] = _agora_utc
+) -> None:
+    agora = relogio()
+    with abrir_sessao() as session:
+        repositorio = SQLAlchemyLeilaoRepository(session)
+        # shortcut: agendado que perdeu a janela inteira fica agendado;
+        # cancelar esses exige regra nova no dominio.
+        a_abrir = [
+            leilao.id
+            for leilao in repositorio.listar_por_status(StatusLeilao.AGENDADO)
+            if leilao.data_inicio <= agora < leilao.data_final
+        ]
+        a_encerrar = [
+            leilao.id
+            for leilao in repositorio.listar_por_status(StatusLeilao.ABERTO)
+            if leilao.data_final <= agora
+        ]
+
+    for acao, ids in ((_abrir, a_abrir), (_encerrar, a_encerrar)):
+        for leilao_id in ids:
+            # Uma transacao por leilao: a falha de um nao impede os demais.
+            try:
+                with abrir_sessao() as session:
+                    acao(session, leilao_id, agora)
+            except Exception:
+                logger.exception('falha ao processar o leilao %s', leilao_id)
+
+
+def iniciar_agendador() -> BackgroundScheduler | None:
+    if not os.getenv('DATABASE_URL'):
+        logger.warning('DATABASE_URL ausente: job de leiloes desligado')
+        return None
+    # Import tardio: infra.db.session exige DATABASE_URL ao ser importado.
+    from infra.db.session import SessionLocal  # noqa: PLC0415
+
+    agendador = BackgroundScheduler(timezone=timezone.utc)
+    agendador.add_job(
+        processar_leiloes,
+        'interval',
+        minutes=1,
+        args=[SessionLocal],
+        id='processar_leiloes',
+        max_instances=1,
+        coalesce=True,
+    )
+    agendador.start()
+    return agendador
