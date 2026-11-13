@@ -78,6 +78,36 @@ Ferramentas sugeridas para teste manual: Postman, Insomnia ou `curl`.
 
 ---
 
+## Desenvolvimento
+
+Os comandos do dia a dia estão no taskipy (`pyproject.toml`). Depois de `poetry install`:
+
+```text
+poetry run task --list
+```
+
+| Tarefa | O que faz |
+|---|---|
+| `lint` | `ruff check` e `ruff format --check` |
+| `format` | aplica formatação e correções do ruff |
+| `test` | suite do pytest |
+| `coverage` | testes com cobertura, no mesmo formato do CI |
+| `check` | `lint` e `test` |
+| `api` | sobe a API (`uvicorn` com reload) |
+| `db-up` / `db-down` | sobe ou derruba PostgreSQL e Redis (`docker compose`) |
+| `migrate` | `alembic upgrade head` |
+| `revision` | gera uma migration; argumentos extras vão depois de `--` |
+
+```text
+poetry run task check
+poetry run task api
+poetry run task revision -- -m "create catalogo tables"
+```
+
+Antes da API e das migrations, copie o ambiente (`cp .env.example .env`) e suba o banco (`poetry run task db-up`).
+
+---
+
 ## Documentação técnica
 
 - [Arquitetura](docs/arquitetura.md) — camadas, domínio, eventos, concorrência

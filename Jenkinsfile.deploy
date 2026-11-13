@@ -1,0 +1,112 @@
+// Deploy da API no k3s deste notebook. Não faz build.
+//
+// Job separado do CI: em "Pipeline script from SCM", aponte Script Path
+// para Jenkinsfile.deploy. Dispare à mão ou depois do job da branch main.
+// O CI (Jenkinsfile) publica phpaiva05/sistema-leilao:<tipo>-<sha>; este
+// job escolhe a tag main-<sha> com last_updated mais recente no Docker Hub
+// e troca a imagem do Deployment que já está no ar.
+//
+// O comando do container (uvicorn) fica no Deployment. set image só troca a tag.
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USER = 'phpaiva05'
+        TAG_PREFIX = 'main-'
+        NAMESPACE = 'leilao'
+        DEPLOYMENT = 'sistema-leilao'
+        CONTAINER = 'api'
+        KUBECONFIG_HOST = '/etc/rancher/k3s/k3s.yaml'
+        KUBECTL_IMAGE = 'rancher/kubectl:v1.36.2'
+    }
+
+    stages {
+        stage('Resolve latest main image') {
+            steps {
+                sh '''
+                    set -eu
+                    tag=$(docker run --rm -i \
+                        -e DOCKER_HUB_USER \
+                        -e TAG_PREFIX \
+                        python:3.15.2-slim python - <<'PY'
+import json, os, urllib.request
+
+user = os.environ["DOCKER_HUB_USER"]
+prefix = os.environ["TAG_PREFIX"]
+url = (
+    "https://hub.docker.com/v2/repositories/"
+    f"{user}/sistema-leilao/tags?page_size=100&ordering=last_updated"
+)
+best = None
+while url:
+    with urllib.request.urlopen(url, timeout=60) as resp:
+        data = json.load(resp)
+    for item in data.get("results", []):
+        name = item.get("name") or ""
+        if not name.startswith(prefix):
+            continue
+        updated = item.get("last_updated") or ""
+        if best is None or updated > best[0]:
+            best = (updated, name)
+    url = data.get("next")
+if best is None:
+    raise SystemExit(f"nenhuma tag com prefixo {prefix!r} no Docker Hub")
+print(best[1])
+PY
+                    ) || exit 1
+                    tag=$(printf '%s' "$tag" | tr -d '[:space:]')
+                    case "$tag" in
+                        ${TAG_PREFIX}*) ;;
+                        *)
+                            echo "Tag inesperada: '$tag'" >&2
+                            exit 1
+                            ;;
+                    esac
+                    printf '%s\n' "$tag" > .deploy-tag
+                    echo "Imagem selecionada: ${DOCKER_HUB_USER}/sistema-leilao:${tag}"
+                '''
+            }
+        }
+
+        stage('Deploy to k3s') {
+            steps {
+                sh '''
+                    set -eu
+                    tag=$(cat .deploy-tag)
+                    image="${DOCKER_HUB_USER}/sistema-leilao:${tag}"
+                    echo "Atualizando ${NAMESPACE}/${DEPLOYMENT} para ${image}"
+                    docker run --rm --network host \
+                        -v "${KUBECONFIG_HOST}:/root/.kube/config:ro" \
+                        -e KUBECONFIG=/root/.kube/config \
+                        "$KUBECTL_IMAGE" \
+                        -n "$NAMESPACE" set image "deployment/${DEPLOYMENT}" \
+                        "${CONTAINER}=${image}"
+                    docker run --rm --network host \
+                        -v "${KUBECONFIG_HOST}:/root/.kube/config:ro" \
+                        -e KUBECONFIG=/root/.kube/config \
+                        "$KUBECTL_IMAGE" \
+                        -n "$NAMESPACE" rollout status "deployment/${DEPLOYMENT}" \
+                        --timeout=180s
+                    docker run --rm --network host \
+                        -v "${KUBECONFIG_HOST}:/root/.kube/config:ro" \
+                        -e KUBECONFIG=/root/.kube/config \
+                        "$KUBECTL_IMAGE" \
+                        -n "$NAMESPACE" get deploy "$DEPLOYMENT" \
+                        -o jsonpath='{range .spec.template.spec.containers[*]}{.name}={.image}{"\n"}{end}'
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'rm -f .deploy-tag'
+        }
+        success {
+            echo 'Deploy da tag main mais recente concluído.'
+        }
+        failure {
+            echo 'Falha ao resolver a tag main ou ao atualizar o cluster.'
+        }
+    }
+}
