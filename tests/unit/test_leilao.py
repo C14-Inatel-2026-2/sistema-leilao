@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -7,6 +7,7 @@ import pytest
 
 from domain.exceptions import (
     EstadoLeilaoInvalidoError,
+    LanceInvalidoError,
 )
 from domain.leilao import Lance, Leilao, StatusLeilao
 
@@ -107,3 +108,46 @@ def test_rejeita_encerrar_leilao_antes_da_data_final_com_mock_relogio():
             leilao.encerrar()
 
         mock_datetime.now.assert_called_once_with(timezone.utc)
+
+
+INICIO = datetime(2030, 1, 1, tzinfo=timezone.utc)
+FIM = datetime(2030, 1, 2, tzinfo=timezone.utc)
+
+
+def test_aceita_lance_no_instante_de_inicio():
+    leilao = leilao_valido(data_inicio=INICIO, data_final=FIM)
+    leilao.validar_lance(uuid4(), Decimal('100.00'), momento=INICIO)
+
+
+@pytest.mark.parametrize('momento', [INICIO - timedelta(seconds=1), FIM])
+def test_rejeita_lance_fora_da_janela(momento):
+    leilao = leilao_valido(data_inicio=INICIO, data_final=FIM)
+    with pytest.raises(LanceInvalidoError):
+        leilao.validar_lance(uuid4(), Decimal('100.00'), momento=momento)
+
+
+def test_abre_leilao_no_instante_de_inicio():
+    leilao = leilao_valido(
+        data_inicio=INICIO, data_final=FIM, status=StatusLeilao.AGENDADO
+    )
+    leilao.abrir(momento=INICIO)
+    assert leilao.status == StatusLeilao.ABERTO
+
+
+def test_rejeita_abrir_leilao_na_data_final():
+    leilao = leilao_valido(
+        data_inicio=INICIO, data_final=FIM, status=StatusLeilao.AGENDADO
+    )
+    with pytest.raises(EstadoLeilaoInvalidoError):
+        leilao.abrir(momento=FIM)
+
+
+def test_valor_minimo_sem_lances_e_o_preco_inicial():
+    assert leilao_valido().valor_minimo_proximo_lance() == Decimal('100.00')
+
+
+def test_valor_minimo_com_lances_e_maior_lance_mais_incremento():
+    leilao = leilao_valido(data_inicio=INICIO, data_final=FIM)
+    leilao.receber_lance(uuid4(), Decimal('100.00'), momento=INICIO)
+    leilao.receber_lance(uuid4(), Decimal('130.00'), momento=INICIO)
+    assert leilao.valor_minimo_proximo_lance() == Decimal('140.00')

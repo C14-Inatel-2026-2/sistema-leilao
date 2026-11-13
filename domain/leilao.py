@@ -65,9 +65,14 @@ class Leilao:
         return max(self.lances, key=lambda x: x.valor)
 
     def valor_minimo_proximo_lance(self) -> Decimal:
-        if self.maior_lance() is None:
+        maior = self.maior_lance()
+        if maior is None:
             return self.preco_inicial
-        return self.maior_lance().valor + self.incremento_minimo
+        return maior.valor + self.incremento_minimo
+
+    def _dentro_da_janela(self, momento: datetime) -> bool:
+        # Janela semiaberta: aceita no instante de inicio, recusa no de fim.
+        return self.data_inicio <= momento < self.data_final
 
     def abrir(self, momento: datetime | None = None) -> None:
         momento = momento or datetime.now(timezone.utc)
@@ -76,7 +81,7 @@ class Leilao:
                 'nao e possível abrir o leilao no status atual, '
                 'apenas possivel no status agendado'
             )
-        if momento < self.data_inicio or momento >= self.data_final:
+        if not self._dentro_da_janela(momento):
             raise EstadoLeilaoInvalidoError(
                 'nao e possivel abrir o leilão fora da janela de tempo'
             )
@@ -94,7 +99,7 @@ class Leilao:
                 'leilao nao esta aberto para lances, '
                 'apenas possível no status aberto'
             )
-        if momento < self.data_inicio or momento >= self.data_final:
+        if not self._dentro_da_janela(momento):
             raise LanceInvalidoError(
                 'nao e possivel fazer lances nesse periodo de tempo'
             )
