@@ -24,7 +24,6 @@ from adapters.events.handlers.lance_realizado_handler import (
 from adapters.events.handlers.leilao_encerrado_handler import (
     handle_leilao_encerrado,
 )
-from adapters.events.publisher import publish as publisher_publish
 from domain.events import LanceRealizado, LeilaoEncerrado
 from use_cases.interfaces import AuditoriaRepository
 
@@ -159,5 +158,17 @@ def test_barramento_ignora_evento_sem_handler(repo_auditoria):
     repo_auditoria.salvar_encerramento.assert_not_called()
 
 
-def test_publisher_reexporta_modulo_de_eventos():
-    assert publisher_publish is publish
+def test_register_auditoria_handlers_eh_idempotente(repo_auditoria):
+    register_auditoria_handlers(repo_auditoria)
+    register_auditoria_handlers(repo_auditoria)
+
+    evento = LanceRealizado(
+        leilao_id=uuid4(),
+        lance_id=uuid4(),
+        usuario_id=uuid4(),
+        valor=Decimal('200.00'),
+        data_hora=AGORA,
+    )
+    publish(evento)
+
+    assert repo_auditoria.salvar_lance.call_count == 1

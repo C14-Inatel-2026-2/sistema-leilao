@@ -35,8 +35,8 @@ def register_auditoria_handlers(repo: AuditoriaRepository) -> None:
     def on_leilao_encerrado(ev: LeilaoEncerrado) -> None:
         handle_leilao_encerrado(ev, repo)
 
-    EVENT_HANDLERS[LanceRealizado].append(on_lance_realizado)
-    EVENT_HANDLERS[LeilaoEncerrado].append(on_leilao_encerrado)
+    EVENT_HANDLERS[LanceRealizado] = [on_lance_realizado]
+    EVENT_HANDLERS[LeilaoEncerrado] = [on_leilao_encerrado]
 
 
 # 3. Dispara os eventos para os handlers registrados
