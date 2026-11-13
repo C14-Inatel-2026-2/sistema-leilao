@@ -81,9 +81,9 @@ Ferramentas sugeridas para teste manual: Postman, Insomnia ou `curl`.
 ## Documentação técnica
 
 - [Arquitetura](docs/arquitetura.md) — camadas, domínio, eventos, concorrência
-- [Hierarquia de exceções](docs/hierarquia-excecoes.md) — `DomainError` unificado; códigos HTTP pendentes
+- [Hierarquia de exceções](docs/hierarquia-excecoes.md) — `DomainError` unificado e mapeamento para HTTP (400 validação, 401 credenciais/token, 409 e-mail duplicado)
 - [Estrutura e stack](docs/estrutura-e-stack.md) — árvore de diretórios e tecnologias
-- [Próximos passos](docs/proximos-passos.md) — estado atual, persistência em seguida, ordem de PRs
+- [Próximos passos](docs/proximos-passos.md) — estado atual e ordem de PRs
 - [Arquivamento de conversas com IA](docs/arquivamento-conversas-ia.md) — exportação e publicação de chats com IA
 
 Documentos de entrega acadêmica (Projeto C14): [`Projeto-C14/docs/`](Projeto-C14/docs/EntregaInicial/).
@@ -97,3 +97,17 @@ Documentos de entrega acadêmica (Projeto C14): [`Projeto-C14/docs/`](Projeto-C1
 | `main` | Documentação estável e referência do projeto |
 | `dev` | Integração do código em desenvolvimento |
 | `feature/*`, `chore/*` | Trabalho isolado; merge em `dev` via pull request |
+| `refactor/*` | Refatorações sem mudança de comportamento externo; merge em `dev` via pull request |
+| `fix/*` | Correções (bugs, vulnerabilidades); merge em `dev` via pull request |
+| `docs/*` | Documentação; merge em `dev` via pull request |
+
+---
+
+## Refactorings
+
+Cada integrante aplicou pelo menos dois refactorings. Todos passaram pelo pipeline (lint, testes e security scan) verde antes e depois da mudança.
+
+| Autor | Smell | Refactoring aplicado | Por quê | PR |
+|---|---|---|---|---|
+| Téo ([@TSM-05](https://github.com/TSM-05)) | Validação fora de ordem: `CadastrarUsuario` gerava o hash da senha antes de validar nome e e-mail | Validar os dados de entrada antes do hash e expor `validar_nome` no domínio | Evita processar bcrypt (operação cara) com dados que seriam recusados e mantém a regra no domínio | [#55](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/55) |
+| Téo ([@TSM-05](https://github.com/TSM-05)) | Primitive Obsession: e-mail como `str` solta, sem normalização (permitia contas duplicadas por diferença de maiúsculas) | Replace Primitive with Object: Value Object `Email` | A regra de e-mail fica num lugar só e acabam as contas duplicadas | [#65](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/65) |
