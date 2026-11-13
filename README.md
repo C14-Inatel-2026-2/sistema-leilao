@@ -64,7 +64,7 @@ agendado  →  aberto  →  encerrado  →  pago
 | RF06 | O vendedor deve poder configurar um leilão com preço inicial, incremento mínimo e data/hora de início e fim |
 | RF07 | O sistema deve abrir automaticamente os leilões agendados ao chegar o horário de início |
 | RF08 | O comprador deve poder dar lances em leilões abertos, respeitando a janela temporal e o incremento mínimo |
-| RF09 | O sistema deve exibir o histórico de lances de um leilão em ordem cronológica |
+| RF09 | O sistema deve exibir o histórico de lances de um leilão em ordem cronológica reversa (do mais recente ao mais antigo) |
 | RF10 | O sistema deve encerrar os leilões automaticamente ao fim do prazo, definindo como vencedor o maior lance válido ou cancelando o leilão sem lances |
 | RF11 | O sistema deve registrar em auditoria os lances realizados e os encerramentos de leilão |
 | RF12 | O vendedor deve poder editar e inativar os próprios anúncios |
