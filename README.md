@@ -50,6 +50,46 @@ agendado  →  aberto  →  encerrado  →  pago
 
 ---
 
+## Requisitos
+
+Situação conferida no código da branch `dev`: ✅ implementado · 🚧 parcial · ⏳ planejado.
+
+### Requisitos funcionais
+
+| ID | Requisito | Situação |
+|---|---|---|
+| RF01 | Cadastrar usuário com nome, e-mail único e senha (`POST /auth/register`) | ✅ |
+| RF02 | Autenticar usuário e emitir token JWT com expiração (`POST /auth/login`) | ✅ |
+| RF03 | Consultar os dados do usuário autenticado (`GET /auth/me`) | ✅ |
+| RF04 | Cadastrar anúncio com título, descrição, categoria e tipo (venda direta ou leilão) (`POST /anuncios`) | ✅ |
+| RF05 | Listar anúncios com filtros por categoria, status, tipo e texto (`GET /anuncios`) | ✅ |
+| RF06 | Configurar leilão com preço inicial, incremento mínimo e janela de início e fim | ✅ |
+| RF07 | Abrir automaticamente os leilões agendados quando chega o horário de início | 🚧 regra e caso de uso `IniciarLeilao` prontos; falta o job |
+| RF08 | Registrar lance respeitando status, janela temporal e incremento mínimo | 🚧 caso de uso `DarLance` pronto; falta a rota `POST /leiloes/{id}/lances` |
+| RF09 | Consultar o histórico de lances de um leilão em ordem cronológica (`GET /leiloes/{id}/lances`) | ✅ |
+| RF10 | Encerrar leilões automaticamente ao fim do prazo, definindo o vencedor pelo maior lance ou cancelando quando não há lances | 🚧 regra no domínio pronta; faltam o caso de uso `EncerrarLeilao` e o job |
+| RF11 | Registrar auditoria dos eventos `LanceRealizado` e `LeilaoEncerrado` | 🚧 eventos e handlers prontos; falta a persistência |
+| RF12 | Editar e inativar anúncios (somente o dono) | ⏳ |
+| RF13 | Registrar venda e pagamento simulado após o leilão (`pago`) | ⏳ |
+
+### Requisitos não funcionais
+
+| ID | Categoria | Requisito | Como é garantido |
+|---|---|---|---|
+| RNF01 | Segurança | Senhas nunca armazenadas em texto puro | Hash com bcrypt (`adapters/security/password_hasher.py`) |
+| RNF02 | Segurança | Rotas protegidas exigem token válido e expirável | JWT assinado, validado em `get_current_user`; resposta 401 |
+| RNF03 | Segurança | O login não revela se um e-mail está cadastrado | Mesma mensagem de erro para e-mail inexistente, senha errada ou conta inativa |
+| RNF04 | Segurança | Dependências e imagem sem vulnerabilidades conhecidas corrigíveis | Trivy e Grype no pipeline |
+| RNF05 | Consistência | Lances simultâneos no mesmo leilão não podem corromper o estado | Lock pessimista (`SELECT ... FOR UPDATE`) no repositório de leilão |
+| RNF06 | Manutenibilidade | Regras de negócio independentes de framework e banco | Clean Architecture: `domain` e `use_cases` não importam FastAPI nem SQLAlchemy |
+| RNF07 | Qualidade | Código testado e padronizado | Testes unitários e de integração (pytest), cobertura mínima de 70% no pipeline e Ruff |
+| RNF08 | Integração contínua | Toda mudança passa por verificação automática antes do merge | Jenkins: Hadolint, Ruff, build, testes, security scan e publicação da imagem |
+| RNF09 | Usabilidade da API | Contrato da API documentado e testável | OpenAPI gerado pelo FastAPI em `/docs` e `/redoc` |
+| RNF10 | Portabilidade | Mesmo ambiente em desenvolvimento, CI e produção | Imagem Docker; PostgreSQL via `docker compose` |
+| RNF11 | Consistência de dados | Esquema do banco versionado | Migrations com Alembic |
+
+---
+
 ## Atores
 
 | Ator | Papel |
