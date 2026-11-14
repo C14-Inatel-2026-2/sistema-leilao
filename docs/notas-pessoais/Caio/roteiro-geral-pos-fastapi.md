@@ -10,7 +10,7 @@ Isto não substitui [`docs/proximos-passos.md`](../../proximos-passos.md) nem [`
 
 ## Onde estamos
 
-A stack HTTP já é FastAPI + Uvicorn. O domínio (`Usuario`, `Categoria`, `Anuncio`, `Leilao`, `Lance`) e os testes unitários estão feitos. O primeiro caso de uso (`CadastrarUsuario`) existe. CI (`Dockerfile` + `Jenkinsfile`) e `docker-compose` (PostgreSQL 16 + Redis) estão em `dev`.
+A stack HTTP já é FastAPI + Uvicorn. O domínio (`Usuario`, `Categoria`, `Anuncio`, `Leilao`, `Lance`) e os testes unitários estão feitos. O primeiro caso de uso (`CadastrarUsuario`) existe. CI (`Dockerfile` + `Jenkinsfile`) e `docker-compose` (PostgreSQL 16) estão em `dev`.
 
 Há um `create_app()` mínimo em `infra/api/app.py` (healthcheck `/` para o pipeline). Ainda **não** há persistência, repositories, rotas de catálogo nem JWT.
 
@@ -68,7 +68,7 @@ A branch remota `origin/feature/use-case-dar-lance` está desatualizada. Pedro V
 6. infra/jobs/ encerrando leilões expirados
 ```
 
-Pode ficar depois do MVP: cadastro completo de anúncios com filtros, venda direta, status `pago`, Celery + Redis, e-mail, frontend.
+Pode ficar depois do MVP: cadastro completo de anúncios com filtros, venda direta, status `pago`, e-mail, frontend.
 
 ---
 

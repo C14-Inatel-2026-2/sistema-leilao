@@ -34,13 +34,6 @@ httpx = "^0.28"
 ruff = "0.17.3"
 taskipy = "^1.14.1"
 
-[tool.poetry.group.celery]
-optional = true
-
-[tool.poetry.group.celery.dependencies]
-celery = "^5.4"
-redis = "^5.2"
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
@@ -76,8 +69,8 @@ test = { cmd = "pytest -q", help = "roda a suite de testes" }
 coverage = { cmd = "pytest -q --cov --cov-report=term-missing --cov-report=xml:reports/coverage.xml --junitxml=reports/junit.xml", help = "testes com cobertura, no mesmo formato do CI" }
 check = { cmd = "task lint && task test", help = "lint e testes" }
 api = { cmd = "uvicorn infra.api.app:create_app --factory --reload", help = "sobe a API em modo desenvolvimento" }
-db-up = { cmd = "docker compose up -d", help = "sobe PostgreSQL e Redis" }
-db-down = { cmd = "docker compose down", help = "derruba PostgreSQL e Redis" }
+db-up = { cmd = "docker compose up -d", help = "sobe o PostgreSQL" }
+db-down = { cmd = "docker compose down", help = "derruba o PostgreSQL" }
 migrate = { cmd = "alembic upgrade head", help = "aplica as migrations ate o head" }
 revision = { cmd = "alembic revision --autogenerate", help = "gera uma migration; passe -- -m \"mensagem\"" }
 

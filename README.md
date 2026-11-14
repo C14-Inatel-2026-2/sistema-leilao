@@ -132,7 +132,7 @@ poetry run task --list
 | `coverage` | testes com cobertura, no mesmo formato do CI |
 | `check` | `lint` e `test` |
 | `api` | sobe a API (`uvicorn` com reload) |
-| `db-up` / `db-down` | sobe ou derruba PostgreSQL e Redis (`docker compose`) |
+| `db-up` / `db-down` | sobe ou derruba o PostgreSQL (`docker compose`) |
 | `migrate` | `alembic upgrade head` |
 | `revision` | gera uma migration; argumentos extras vão depois de `--` |
 
