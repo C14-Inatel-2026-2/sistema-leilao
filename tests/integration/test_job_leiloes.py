@@ -4,14 +4,20 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import func, select
 
 import infra.jobs.leiloes as job
 from adapters.repositories.leilao_repository import (
     SQLAlchemyLeilaoRepository,
 )
+from adapters.repositories.venda_repository import (
+    SQLAlchemyVendaRepository,
+)
 from domain.leilao import Leilao, StatusLeilao
+from domain.venda import StatusPagamento
 from infra.db.models.anuncio import AnuncioModel
 from infra.db.models.categoria import CategoriaModel
+from infra.db.models.venda import VendaModel
 
 AGORA = datetime(2026, 11, 5, 12, 0, tzinfo=timezone.utc)
 
@@ -114,6 +120,27 @@ def test_falha_em_um_leilao_nao_impede_os_demais(
 
     assert repositorio.buscar_por_id(primeiro).status == StatusLeilao.ABERTO
     assert repositorio.buscar_por_id(segundo).status == StatusLeilao.CANCELADO
+
+
+def test_encerrar_com_lance_registra_venda_pendente(session, criar):
+    com_lances = criar(StatusLeilao.ABERTO, -2 * H, -H, ['100', '120'])
+    sem_lances = criar(StatusLeilao.ABERTO, -2 * H, -H)
+
+    _rodar(session)
+    _rodar(session)
+
+    vendas = SQLAlchemyVendaRepository(session)
+    venda = vendas.buscar_por_leilao(com_lances)
+    assert venda is not None
+    assert venda.status == StatusPagamento.PENDENTE
+    assert venda.valor == Decimal('120.00')
+    assert vendas.buscar_por_leilao(sem_lances) is None
+    total = session.scalar(
+        select(func.count())
+        .select_from(VendaModel)
+        .where(VendaModel.leilao_id.in_([com_lances, sem_lances]))
+    )
+    assert total == 1
 
 
 def test_agendador_desligado_sem_database_url(monkeypatch):

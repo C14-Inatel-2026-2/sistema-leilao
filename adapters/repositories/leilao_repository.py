@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from adapters.repositories.tempo import com_fuso
 from domain.lance import Lance
 from domain.leilao import Leilao, StatusLeilao
 from infra.db.models.lance import LanceModel
@@ -25,24 +25,17 @@ _CAMPOS = (
 )
 
 
-def _com_fuso(momento: datetime) -> datetime:
-    # SQLite devolve datetime sem fuso; o PostgreSQL ja devolve em UTC.
-    if momento.tzinfo is None:
-        return momento.replace(tzinfo=timezone.utc)
-    return momento
-
-
 def _para_dominio(model: LeilaoModel) -> Leilao:
     dados = {campo: getattr(model, campo) for campo in _CAMPOS}
     for campo in ('data_inicio', 'data_final', 'criado_em'):
-        dados[campo] = _com_fuso(dados[campo])
+        dados[campo] = com_fuso(dados[campo])
     lances = [
         Lance(
             id=lance.id,
             leilao_id=lance.leilao_id,
             comprador_id=lance.comprador_id,
             valor=lance.valor,
-            criado_em=_com_fuso(lance.criado_em),
+            criado_em=com_fuso(lance.criado_em),
         )
         for lance in model.lances
     ]

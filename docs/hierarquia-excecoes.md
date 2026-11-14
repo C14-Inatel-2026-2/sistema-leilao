@@ -8,16 +8,7 @@ Alinhado a [`must-read.md`](must-read.md) (seções 3.1, 6.1 e 6.4).
 
 ## Por que uma base comum
 
-A infraestrutura (FastAPI) precisa distinguir **violação de regra de negócio** de **bug técnico**. Com `DomainError`, um handler HTTP pode fazer:
-
-```python
-@app.exception_handler(DomainError)
-def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
-    return JSONResponse(
-        status_code=400,
-        content={"codigo": ..., "mensagem": str(exc)},
-    )
-```
+A infraestrutura (FastAPI) precisa distinguir **violação de regra de negócio** de **bug técnico**. `infra/api/erros.py` registra um `exception_handler(DomainError)`. O corpo continua `{"detail": "..."}`, o formato do `HTTPException`. O status depende da subclasse: credencial inválida 401 (com `WWW-Authenticate: Bearer`), e-mail já cadastrado 409, leilão inexistente 404, qualquer outro `DomainError` 400.
 
 Antes da unificação, `UsuarioInvalidoError` herdava de `DomainError`, mas lance/leilão/anúncio herdavam de `ValueError`. Um `except DomainError` não cobria o núcleo do leilão.
 
@@ -31,38 +22,43 @@ Todas as exceções de domínio vivem em `domain/exceptions.py` e herdam de `Dom
 DomainError
 ├── UsuarioInvalidoError
 ├── EmailJaCadastradoError
+├── CredenciaisInvalidasError
 ├── CategoriaInvalidaError
 ├── AnuncioInvalidoError
 ├── LeilaoInvalidoError           # dados de criação
 ├── EstadoLeilaoInvalidoError     # transição de estado
-└── LanceInvalidoError            # valor, comprador, janela, incremento, vendedor
+├── LanceInvalidoError            # valor, comprador, janela, incremento, vendedor
+└── LeilaoNaoEncontradoError
 ```
 
 | Classe | Usada por |
 |---|---|
 | `UsuarioInvalidoError` | `domain/usuario.py` |
 | `EmailJaCadastradoError` | `use_cases/cadastrar_usuario.py` |
+| `CredenciaisInvalidasError` | `use_cases/autenticar_usuario.py` |
 | `CategoriaInvalidaError` | `domain/categoria.py` |
 | `AnuncioInvalidoError` | `domain/anuncio.py` |
 | `LeilaoInvalidoError` | `domain/leilao.py` (criação) |
 | `EstadoLeilaoInvalidoError` | `domain/leilao.py` (abrir/encerrar/cancelar/pagar; lance com leilão não aberto) |
 | `LanceInvalidoError` | `domain/lance.py` e `domain/leilao.py` (janela, incremento, vendedor) |
+| `LeilaoNaoEncontradoError` | casos de uso de leilão e `GET /leiloes/{id}` |
 
 `AnuncioError` (local, `ValueError`) foi substituída por `AnuncioInvalidoError`.
 
 ---
 
-## Mapeamento HTTP (quando a API existir)
+## Mapeamento HTTP
 
-Definido em [`must-read.md`](must-read.md) §6.4. A hierarquia torna o mapeamento trivial.
+Definido em [`must-read.md`](must-read.md) §6.4 e aplicado em `infra/api/erros.py`.
 
 | Situação | HTTP | Exceção típica |
 |---|---|---|
-| Dados ou regra de negócio violada | 400 | qualquer `DomainError` |
+| Dados ou regra de negócio violada | 400 | qualquer outro `DomainError` |
 | Payload com formato inválido | 422 | `RequestValidationError` (Pydantic; antes do caso de uso) |
-| Não autenticado | 401 | (infra/JWT, não domínio) |
-| Autenticado sem permissão | 403 | (caso de uso / papel; pode virar `DomainError` específica depois) |
-| Recurso inexistente | 404 | (repositório / caso de uso) |
+| Credencial de login recusada | 401 | `CredenciaisInvalidasError` |
+| Token JWT ausente ou inválido | 401 | `HTTPException` em `get_current_user` (não é `DomainError`) |
+| E-mail já cadastrado | 409 | `EmailJaCadastradoError` |
+| Leilão inexistente | 404 | `LeilaoNaoEncontradoError` |
 
 Payload alvo:
 
@@ -72,7 +68,7 @@ Payload alvo:
 
 Códigos estáveis (`codigo`) ainda **não** existem — só mensagens em português. Podem entrar como incremento (atributo de classe ou tabela na camada HTTP), sem reabrir a hierarquia.
 
-Quando existir router de lance, um único `exception_handler(DomainError)` cobre incremento, janela e vendedor.
+O handler único cobre incremento, janela, vendedor, cadastro e leilão inexistente. O 422 do Pydantic e o 401 do JWT continuam fora dele.
 
 ---
 

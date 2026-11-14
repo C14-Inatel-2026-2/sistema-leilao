@@ -58,7 +58,7 @@ sistema-leilao/
 ├── Dockerfile                  # Imagem de build/teste (Poetry + pytest)
 ├── Jenkinsfile                 # Pipeline de CI/CD
 ├── pyproject.toml              # Dependências (Poetry)
-├── docker-compose.yml          # PostgreSQL (+ Redis, se Celery)
+├── docker-compose.yml          # PostgreSQL
 └── README.md
 ```
 
@@ -89,8 +89,7 @@ sistema-leilao/
 | Testes automatizados | pytest + httpx (`TestClient`) + pytest-cov |
 | Documentação da API | OpenAPI nativo do FastAPI (`/docs`, `/redoc`) |
 | CI/CD | Jenkins (Jenkinsfile) |
-| Jobs assíncronos (MVP) | APScheduler (lifespan do FastAPI) |
-| Jobs assíncronos (evolução) | Celery + Redis |
+| Jobs assíncronos | APScheduler (lifespan do FastAPI) |
 
 ---
 
@@ -101,8 +100,7 @@ O `docker-compose.yml` sobe os serviços de apoio:
 ```text
 docker-compose up
      │
-     ├── PostgreSQL    → persistência principal
-     └── Redis         → opcional; necessário apenas se adotar Celery
+     └── PostgreSQL    → persistência principal
 ```
 
 A aplicação FastAPI roda fora do compose (ou em serviço adicional, conforme evolução do projeto):

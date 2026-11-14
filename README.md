@@ -132,7 +132,7 @@ poetry run task --list
 | `coverage` | testes com cobertura, no mesmo formato do CI |
 | `check` | `lint` e `test` |
 | `api` | sobe a API (`uvicorn` com reload) |
-| `db-up` / `db-down` | sobe ou derruba PostgreSQL e Redis (`docker compose`) |
+| `db-up` / `db-down` | sobe ou derruba o PostgreSQL (`docker compose`) |
 | `migrate` | `alembic upgrade head` |
 | `revision` | gera uma migration; argumentos extras vão depois de `--` |
 
@@ -149,6 +149,7 @@ Antes da API e das migrations, copie o ambiente (`cp .env.example .env`) e suba 
 ## Documentação técnica
 
 - [Arquitetura](docs/arquitetura.md) — camadas, domínio, eventos, concorrência
+- [Collection Postman](docs/postman/readme.md) — fluxo importável para apresentar cadastro, lances e encerramento
 - [Hierarquia de exceções](docs/hierarquia-excecoes.md) — `DomainError` unificado e mapeamento para HTTP (400 validação, 401 credenciais/token, 409 e-mail duplicado)
 - [Estrutura e stack](docs/estrutura-e-stack.md) — árvore de diretórios e tecnologias
 - [Próximos passos](docs/proximos-passos.md) — estado atual e ordem de PRs
@@ -183,3 +184,6 @@ Refactorings aplicados no projeto. Cada um passou pelo pipeline (lint, testes e 
 | Pedro ([@phpaiva05](https://github.com/phpaiva05)) | Middle Man / Lazy Module: `adapters/events/publisher.py` apenas reexportava símbolos do `__init__.py` sem adicionar comportamento | Inline Module / Remove Middle Man: remoção do módulo redundante e importação direta de `adapters.events` | Elimina código morto, simplifica a arquitetura e reduz complexidade acidental | [#70](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/70) |
 | Pedro Vitor ([@PedroVGSC](https://github.com/PedroVGSC)) | Duplicated Code: a regra da janela temporal (`momento < data_inicio or momento >= data_final`) estava repetida em `Leilao.abrir` e `Leilao.validar_lance` | Extract Method: `Leilao._dentro_da_janela(momento)` | A regra da janela fica num lugar só: abertura e lance não podem divergir se o limite mudar | [#75](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/75) |
 | Pedro Vitor ([@PedroVGSC](https://github.com/PedroVGSC)) | Duplicate Query: `valor_minimo_proximo_lance` chamava `maior_lance()` duas vezes, percorrendo a lista de lances duas vezes | Extract Variable: guarda o maior lance numa variável local | Uma passada só pela lista de lances a cada validação e código mais legível | [#75](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/75) |
+| Caio ([@caiosemblano](https://github.com/caiosemblano)) | Shotgun Surgery: cada router traduzia `DomainError` no próprio `try/except`, com status espalhado | Consolidate Conditional: um `exception_handler` em `infra/api/erros.py` | Exceção nova ganha status num lugar só, e 401, 404 e 409 não viram 400 por engano | [#84](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/84) |
+| Caio ([@caiosemblano](https://github.com/caiosemblano)) | Duplicated Code: `_com_fuso` (datetime sem fuso vira UTC) estava copiada nos repositórios de anúncio, leilão, categoria, usuário e auditoria | Extract Function: `adapters/repositories/tempo.com_fuso` | A regra do SQLite sem fuso fica num lugar só e os cinco repositórios não divergem | [#83](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/83) |
+| Caio ([@caiosemblano](https://github.com/caiosemblano)) | Duplicated Code: a janela semiaberta (`data_inicio <= momento < data_final`) estava copiada em `CriarAnuncio` e no job de abertura, além de `Leilao` | Rename Method: `Leilao.esta_na_janela` vira o único predicado e passa a ser usado pelo caso de uso e pelo job | Abertura, criação de anúncio e job não divergem se o limite da janela mudar | [#82](https://github.com/C14-Inatel-2026-2/sistema-leilao/pull/82) |
