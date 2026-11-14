@@ -1,8 +1,9 @@
 """
 infra/jobs/leiloes.py
 
-Job periodico que abre leiloes agendados e encerra os vencidos. Nao tem
-regra de negocio: so escolhe os leiloes e dispara os casos de uso.
+Job periodico que abre leiloes agendados, encerra os vencidos e registra
+a venda quando ha vencedor. Nao tem regra de negocio: so escolhe os
+leiloes e dispara os casos de uso.
 """
 
 from __future__ import annotations
@@ -21,9 +22,13 @@ from adapters.events import publish
 from adapters.repositories.leilao_repository import (
     SQLAlchemyLeilaoRepository,
 )
+from adapters.repositories.venda_repository import (
+    SQLAlchemyVendaRepository,
+)
 from domain.leilao import StatusLeilao
 from use_cases.encerrar_leilao import EncerrarLeilao
 from use_cases.iniciar_leilao import IniciarLeilao
+from use_cases.registrar_venda import RegistrarVenda
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +42,14 @@ def _agora_utc() -> datetime:
 def _abrir(session: Session, leilao_id: UUID, agora: datetime) -> None:
     repositorio = SQLAlchemyLeilaoRepository(session)
     IniciarLeilao(repositorio, relogio=lambda: agora).executar(leilao_id)
+    session.commit()
+
+
+def _registrar(session: Session, leilao_id: UUID) -> None:
+    RegistrarVenda(
+        SQLAlchemyLeilaoRepository(session),
+        SQLAlchemyVendaRepository(session),
+    ).executar(leilao_id)
     session.commit()
 
 
@@ -76,6 +89,25 @@ def processar_leiloes(
                     acao(session, leilao_id, agora)
             except Exception:
                 logger.exception('falha ao processar o leilao %s', leilao_id)
+
+    with abrir_sessao() as session:
+        leiloes = SQLAlchemyLeilaoRepository(session)
+        vendas = SQLAlchemyVendaRepository(session)
+        a_registrar = [
+            leilao.id
+            for leilao in leiloes.listar_por_status(StatusLeilao.ENCERRADO)
+            if leilao.vencedor_id is not None
+            and vendas.buscar_por_leilao(leilao.id) is None
+        ]
+
+    for leilao_id in a_registrar:
+        try:
+            with abrir_sessao() as session:
+                _registrar(session, leilao_id)
+        except Exception:
+            logger.exception(
+                'falha ao registrar a venda do leilao %s', leilao_id
+            )
 
 
 def iniciar_agendador() -> BackgroundScheduler | None:

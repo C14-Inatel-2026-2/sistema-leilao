@@ -1,20 +1,26 @@
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from http import HTTPStatus
-from uuid import uuid4
+from types import SimpleNamespace
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
+from adapters.repositories.anuncio_repository import (
+    SQLAlchemyAnuncioRepository,
+)
 from adapters.repositories.categoria_repository import (
     SQLAlchemyCategoriaRepository,
 )
 from adapters.repositories.usuario_repository import (
     SQLAlchemyUsuarioRepository,
 )
+from domain.anuncio import StatusAnuncio
 from domain.categoria import Categoria
 from domain.usuario import PapelUsuario, Usuario
 from infra.api.app import create_app
-from infra.api.dependencies import get_session
+from infra.api.dependencies import get_current_user, get_session
 
 
 @pytest.fixture
@@ -158,3 +164,134 @@ def test_get_categoria_inexistente_retorna_lista_vazia(client):
 
     assert resposta.status_code == HTTPStatus.OK
     assert resposta.json() == []
+
+
+def _autenticar(client, usuario_id):
+    usuario = SimpleNamespace(id=usuario_id)
+    client.app.dependency_overrides[get_current_user] = lambda: usuario
+
+
+def _criar(client, vendedor, categoria, **overrides):
+    resposta = client.post(
+        '/anuncios', json=_corpo(vendedor, categoria, **overrides)
+    )
+    assert resposta.status_code == HTTPStatus.CREATED
+    return resposta.json()
+
+
+def test_patch_dono_atualiza_anuncio(client, vendedor, categoria):
+    criado = _criar(client, vendedor, categoria)
+    anuncio_id = criado['anuncio']['id']
+    _autenticar(client, vendedor.id)
+
+    resposta = client.patch(
+        f'/anuncios/{anuncio_id}',
+        json={
+            'titulo': 'Notebook revisado',
+            'descricao': 'SSD 512 GB',
+            'preco_referencia': '1400.00',
+        },
+    )
+
+    assert resposta.status_code == HTTPStatus.OK
+    corpo = resposta.json()
+    assert corpo['titulo'] == 'Notebook revisado'
+    assert corpo['descricao'] == 'SSD 512 GB'
+    assert Decimal(corpo['preco_referencia']) == Decimal('1400.00')
+    assert corpo['vendedor_id'] == str(vendedor.id)
+
+
+def test_patch_de_outro_usuario_retorna_403(client, vendedor, categoria):
+    criado = _criar(client, vendedor, categoria)
+    _autenticar(client, uuid4())
+
+    resposta = client.patch(
+        f'/anuncios/{criado["anuncio"]["id"]}',
+        json={'titulo': 'Tomado'},
+    )
+
+    assert resposta.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_patch_anuncio_inexistente_retorna_404(client, vendedor):
+    _autenticar(client, vendedor.id)
+
+    resposta = client.patch(
+        f'/anuncios/{uuid4()}', json={'titulo': 'Nao existe'}
+    )
+
+    assert resposta.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_patch_sem_token_retorna_401(client, vendedor, categoria):
+    criado = _criar(client, vendedor, categoria)
+
+    resposta = client.patch(
+        f'/anuncios/{criado["anuncio"]["id"]}',
+        json={'titulo': 'Sem login'},
+    )
+
+    assert resposta.status_code == HTTPStatus.UNAUTHORIZED
+
+
+def test_patch_com_lances_retorna_400(client, session, vendedor, categoria):
+    inicio = datetime.now(timezone.utc) - timedelta(minutes=5)
+    criado = _criar(
+        client,
+        vendedor,
+        categoria,
+        data_inicio=inicio.isoformat(),
+        data_final=(inicio + timedelta(hours=2)).isoformat(),
+    )
+    leilao_id = criado['leilao']['id']
+    _autenticar(client, uuid4())
+    lance = client.post(
+        f'/leiloes/{leilao_id}/lances', json={'valor': '500.00'}
+    )
+    assert lance.status_code == HTTPStatus.CREATED
+    _autenticar(client, vendedor.id)
+
+    resposta = client.patch(
+        f'/anuncios/{criado["anuncio"]["id"]}',
+        json={'titulo': 'Mudou no meio'},
+    )
+
+    assert resposta.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_post_inativar_marca_anuncio_inativo(client, vendedor, categoria):
+    criado = _criar(client, vendedor, categoria)
+    _autenticar(client, vendedor.id)
+
+    resposta = client.post(f'/anuncios/{criado["anuncio"]["id"]}/inativar')
+
+    assert resposta.status_code == HTTPStatus.OK
+    assert resposta.json()['status'] == 'INATIVO'
+
+
+def test_post_inativar_vendido_retorna_400(
+    client, session, vendedor, categoria
+):
+    criado = _criar(client, vendedor, categoria)
+    anuncio_id = UUID(criado['anuncio']['id'])
+    repositorio = SQLAlchemyAnuncioRepository(session)
+    anuncio = repositorio.buscar_por_id(anuncio_id)
+    anuncio.status = StatusAnuncio.VENDIDO
+    repositorio.salvar(anuncio)
+    session.commit()
+    _autenticar(client, vendedor.id)
+
+    resposta = client.post(f'/anuncios/{anuncio_id}/inativar')
+
+    assert resposta.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_post_inativar_de_outro_usuario_retorna_403(
+    client, vendedor, categoria
+):
+    criado = _criar(client, vendedor, categoria)
+    _autenticar(client, uuid4())
+
+    resposta = client.post(f'/anuncios/{criado["anuncio"]["id"]}/inativar')
+
+    assert resposta.status_code == HTTPStatus.FORBIDDEN

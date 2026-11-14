@@ -20,6 +20,7 @@ from domain.anuncio import Anuncio, StatusAnuncio, TipoAnuncio
 from domain.categoria import Categoria
 from domain.leilao import Leilao, StatusLeilao
 from domain.usuario import Usuario
+from domain.venda import Venda
 
 
 class UsuarioRepository(Protocol):
@@ -77,6 +78,14 @@ class AnuncioRepository(Protocol):
     ) -> list[Anuncio]: ...
 
     def salvar(self, anuncio: Anuncio) -> None: ...
+
+
+class VendaRepository(Protocol):
+    def buscar_por_id(self, venda_id: UUID) -> Venda | None: ...
+
+    def buscar_por_leilao(self, leilao_id: UUID) -> Venda | None: ...
+
+    def salvar(self, venda: Venda) -> None: ...
 
 
 class AuditoriaRepository(Protocol):

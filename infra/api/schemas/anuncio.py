@@ -48,6 +48,12 @@ class LeilaoDoAnuncioResponse(BaseModel):
     status: StatusLeilao
 
 
+class EditarAnuncioRequest(BaseModel):
+    titulo: str | None = None
+    descricao: str | None = None
+    preco_referencia: Decimal | None = None
+
+
 class AnuncioCriadoResponse(BaseModel):
     anuncio: AnuncioResponse
     leilao: LeilaoDoAnuncioResponse
