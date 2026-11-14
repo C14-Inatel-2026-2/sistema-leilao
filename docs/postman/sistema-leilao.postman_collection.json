@@ -1,0 +1,954 @@
+{
+  "info": {
+    "name": "Sistema de Leilão",
+    "description": "Fluxo de demonstração: cadastro, leilão que já nasce aberto, lances e encerramento pelo job. Importe também o environment local e leia docs/postman/readme.md antes de rodar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "emailVendedor",
+      "value": ""
+    },
+    {
+      "key": "emailComprador",
+      "value": ""
+    },
+    {
+      "key": "vendedorId",
+      "value": ""
+    },
+    {
+      "key": "compradorId",
+      "value": ""
+    },
+    {
+      "key": "tokenVendedor",
+      "value": ""
+    },
+    {
+      "key": "tokenComprador",
+      "value": ""
+    },
+    {
+      "key": "dataInicio",
+      "value": ""
+    },
+    {
+      "key": "dataFinal",
+      "value": ""
+    },
+    {
+      "key": "dataInicioAgendado",
+      "value": ""
+    },
+    {
+      "key": "dataFinalAgendado",
+      "value": ""
+    },
+    {
+      "key": "anuncioId",
+      "value": ""
+    },
+    {
+      "key": "leilaoId",
+      "value": ""
+    },
+    {
+      "key": "lanceId",
+      "value": ""
+    },
+    {
+      "key": "vendaId",
+      "value": ""
+    },
+    {
+      "key": "anuncioSemLanceId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Setup",
+      "item": [
+        {
+          "name": "Saúde",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API no ar', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar vendedor",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Vendedor Demo\",\n  \"email\": \"{{emailVendedor}}\",\n  \"senha\": \"{{senha}}\",\n  \"papel\": \"vendedor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const sufixo = Date.now();",
+                  "pm.collectionVariables.set('emailVendedor', `vendedor.${sufixo}@demo.local`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('vendedor cadastrado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.papel).to.eql('vendedor');",
+                  "    pm.collectionVariables.set('vendedorId', corpo.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar comprador",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Comprador Demo\",\n  \"email\": \"{{emailComprador}}\",\n  \"senha\": \"{{senha}}\",\n  \"papel\": \"comprador\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const sufixo = Date.now();",
+                  "pm.collectionVariables.set('emailComprador', `comprador.${sufixo}@demo.local`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('comprador cadastrado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.papel).to.eql('comprador');",
+                  "    pm.collectionVariables.set('compradorId', corpo.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login do vendedor",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{emailVendedor}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{senha}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "O campo username recebe o e-mail. O corpo é formulário, não JSON."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('token do vendedor', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.token_type).to.eql('bearer');",
+                  "    pm.collectionVariables.set('tokenVendedor', corpo.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login do comprador",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{emailComprador}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{senha}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('token do comprador', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.token_type).to.eql('bearer');",
+                  "    pm.collectionVariables.set('tokenComprador', corpo.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Perfil do vendedor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenVendedor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('perfil é o vendedor cadastrado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.id).to.eql(pm.collectionVariables.get('vendedorId'));",
+                  "    pm.expect(corpo.papel).to.eql('vendedor');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 Fluxo do leilão",
+      "item": [
+        {
+          "name": "Criar anúncio com leilão aberto",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/anuncios",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Notebook\",\n  \"descricao\": \"Usado, para demonstração\",\n  \"preco_referencia\": \"1500.00\",\n  \"categoria_id\": \"{{categoriaId}}\",\n  \"vendedor_id\": \"{{vendedorId}}\",\n  \"preco_inicial\": \"500.00\",\n  \"incremento_minimo\": \"50.00\",\n  \"data_inicio\": \"{{dataInicio}}\",\n  \"data_final\": \"{{dataFinal}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Sem token. data_inicio já passou e data_final fica cerca de 3 minutos à frente, para os lances caberem antes do job."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const agora = new Date();",
+                  "pm.collectionVariables.set('dataInicio', new Date(agora.getTime() - 60 * 1000).toISOString());",
+                  "pm.collectionVariables.set('dataFinal', new Date(agora.getTime() + 3 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('leilão já nasce aberto', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.anuncio.tipo).to.eql('LEILAO');",
+                  "    pm.expect(corpo.leilao.status).to.eql('ABERTO');",
+                  "    pm.collectionVariables.set('anuncioId', corpo.anuncio.id);",
+                  "    pm.collectionVariables.set('leilaoId', corpo.leilao.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar anúncios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/anuncios?texto=Notebook",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('a listagem contém o notebook', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const lista = pm.response.json();",
+                  "    const id = pm.collectionVariables.get('anuncioId');",
+                  "    const item = lista.find((anuncio) => anuncio.id === id);",
+                  "    pm.expect(item, 'anúncio criado').to.be.an('object');",
+                  "    pm.expect(item.titulo).to.eql('Notebook');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar lance de 550",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}/lances",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComprador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": \"550.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('lance de 550 aceito', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(Number(corpo.valor)).to.eql(550);",
+                  "    pm.expect(corpo.comprador_id).to.eql(pm.collectionVariables.get('compradorId'));",
+                  "    pm.collectionVariables.set('lanceId', corpo.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recusar lance de 560",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}/lances",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComprador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": \"560.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Depois de 550, o mínimo é 600."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('lance abaixo do incremento é recusado', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar lance de 600",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}/lances",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComprador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": \"600.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('lance de 600 aceito', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(Number(pm.response.json().valor)).to.eql(600);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recusar lance do vendedor",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}/lances",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenVendedor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": \"650.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('vendedor não dá lance no próprio leilão', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().detail).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar lances",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}/lances",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('histórico vem do mais recente', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const lista = pm.response.json();",
+                  "    pm.expect(lista.length).to.eql(2);",
+                  "    pm.expect(Number(lista[0].valor)).to.eql(600);",
+                  "    pm.expect(Number(lista[1].valor)).to.eql(550);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar leilão aberto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('leilão segue aberto com maior lance 600', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.status).to.eql('ABERTO');",
+                  "    pm.expect(Number(corpo.maior_lance)).to.eql(600);",
+                  "    pm.expect(corpo.vencedor_id).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Encerramento pelo job",
+      "item": [
+        {
+          "name": "Consultar leilão encerrado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Reexecute esta pasta se o teste disser que o leilão ainda está ABERTO. A collection não dispara o job."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('job encerrou o leilão', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    if (corpo.status === 'ABERTO') {",
+                  "        throw new Error('Leilão ainda ABERTO. Espere o dataFinal e até 1 minuto do job, e rode esta pasta de novo.');",
+                  "    }",
+                  "    pm.expect(corpo.status).to.eql('ENCERRADO');",
+                  "    pm.expect(corpo.vencedor_id).to.eql(pm.collectionVariables.get('compradorId'));",
+                  "    pm.expect(Number(corpo.valor_arremate)).to.eql(600);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obter venda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}/venda",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComprador}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('venda pendente do vencedor', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.status).to.eql('PENDENTE');",
+                  "    pm.expect(corpo.comprador_id).to.eql(pm.collectionVariables.get('compradorId'));",
+                  "    pm.expect(Number(corpo.valor)).to.eql(600);",
+                  "    pm.collectionVariables.set('vendaId', corpo.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular pagamento",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/vendas/{{vendaId}}/pagamento",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComprador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metodo\": \"PIX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('pagamento aprovado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.status).to.eql('APROVADO');",
+                  "    pm.expect(corpo.metodo).to.eql('PIX');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar leilão pago",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leiloes/{{leilaoId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('leilão marcado como pago', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('PAGO');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar anúncio vendido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/anuncios?texto=Notebook",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Encerra o runner desta pasta para não chamar o cancelamento, que só vale com a venda ainda pendente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('anúncio ficou vendido', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const lista = pm.response.json();",
+                  "    const id = pm.collectionVariables.get('anuncioId');",
+                  "    const item = lista.find((anuncio) => anuncio.id === id);",
+                  "    pm.expect(item, 'anúncio do fluxo').to.be.an('object');",
+                  "    pm.expect(item.status).to.eql('VENDIDO');",
+                  "});",
+                  "postman.setNextRequest(null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar venda",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/vendas/{{vendaId}}/cancelar",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenComprador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Não entra na sequência que paga. Rode só no lugar de Simular pagamento, enquanto a venda está PENDENTE. O runner da pasta para antes desta request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('venda pendente cancelada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('CANCELADO');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Anúncio sem lances",
+      "item": [
+        {
+          "name": "Criar anúncio agendado",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/anuncios",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Mesa\",\n  \"descricao\": \"Sem lances, para editar e inativar\",\n  \"preco_referencia\": \"900.00\",\n  \"categoria_id\": \"{{categoriaId}}\",\n  \"vendedor_id\": \"{{vendedorId}}\",\n  \"preco_inicial\": \"400.00\",\n  \"incremento_minimo\": \"20.00\",\n  \"data_inicio\": \"{{dataInicioAgendado}}\",\n  \"data_final\": \"{{dataFinalAgendado}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fora do runner do fluxo principal. Exige a pasta 00, porque usa vendedorId e categoriaId."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const agora = new Date();",
+                  "const dia = 24 * 60 * 60 * 1000;",
+                  "pm.collectionVariables.set('dataInicioAgendado', new Date(agora.getTime() + dia).toISOString());",
+                  "pm.collectionVariables.set('dataFinalAgendado', new Date(agora.getTime() + 2 * dia).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('leilão fica agendado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.leilao.status).to.eql('AGENDADO');",
+                  "    pm.collectionVariables.set('anuncioSemLanceId', corpo.anuncio.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar anúncio",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/anuncios/{{anuncioSemLanceId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenVendedor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Mesa de escritorio\",\n  \"descricao\": \"Sem lances\",\n  \"preco_referencia\": \"800.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('vendedor edita o próprio anúncio', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const corpo = pm.response.json();",
+                  "    pm.expect(corpo.titulo).to.eql('Mesa de escritorio');",
+                  "    pm.expect(Number(corpo.preco_referencia)).to.eql(800);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inativar anúncio",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/anuncios/{{anuncioSemLanceId}}/inativar",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenVendedor}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('anúncio inativado', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('INATIVO');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
