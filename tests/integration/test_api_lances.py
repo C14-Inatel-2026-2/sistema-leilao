@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from http import HTTPStatus
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -11,7 +12,7 @@ from adapters.repositories.leilao_repository import (
 )
 from domain.leilao import Leilao, StatusLeilao
 from infra.api.app import create_app
-from infra.api.dependencies import get_session
+from infra.api.dependencies import get_current_user, get_session
 from infra.db.models.anuncio import AnuncioModel
 from infra.db.models.categoria import CategoriaModel
 from use_cases.dar_lance import DarLance
@@ -19,8 +20,7 @@ from use_cases.dar_lance import DarLance
 INICIO = datetime(2026, 11, 5, 12, 0, tzinfo=timezone.utc)
 
 
-@pytest.fixture
-def leilao(session) -> Leilao:
+def _novo_leilao(session, inicio) -> Leilao:
     categoria = CategoriaModel(nome='Eletronicos')
     session.add(categoria)
     session.flush()
@@ -38,12 +38,25 @@ def leilao(session) -> Leilao:
         vendedor_id=anuncio.vendedor_id,
         preco_inicial=Decimal('100.00'),
         incremento_minimo=Decimal('10.00'),
-        data_inicio=INICIO,
-        data_final=INICIO + timedelta(hours=2),
+        data_inicio=inicio,
+        data_final=inicio + timedelta(hours=2),
         status=StatusLeilao.ABERTO,
     )
     SQLAlchemyLeilaoRepository(session).salvar(leilao)
     return leilao
+
+
+@pytest.fixture
+def leilao(session) -> Leilao:
+    return _novo_leilao(session, INICIO)
+
+
+@pytest.fixture
+def leilao_aberto(session) -> Leilao:
+    # Janela em volta do relogio real: o endpoint usa a hora do servidor.
+    return _novo_leilao(
+        session, datetime.now(timezone.utc) - timedelta(hours=1)
+    )
 
 
 @pytest.fixture
@@ -123,3 +136,74 @@ def test_get_lances_com_id_invalido_retorna_422(client):
         client.get('/leiloes/abc/lances').status_code
         == HTTPStatus.UNPROCESSABLE_ENTITY
     )
+
+
+def _autenticar(client, usuario_id=None):
+    usuario = SimpleNamespace(id=usuario_id or uuid4())
+    client.app.dependency_overrides[get_current_user] = lambda: usuario
+    return usuario
+
+
+def test_post_lance_registra_lance_do_usuario_autenticado(
+    client, leilao_aberto
+):
+    comprador = _autenticar(client)
+
+    resposta = client.post(
+        f'/leiloes/{leilao_aberto.id}/lances', json={'valor': '150.00'}
+    )
+
+    assert resposta.status_code == HTTPStatus.CREATED
+    corpo = resposta.json()
+    assert corpo['comprador_id'] == str(comprador.id)
+    assert Decimal(corpo['valor']) == Decimal('150.00')
+    historico = client.get(f'/leiloes/{leilao_aberto.id}/lances').json()
+    assert [lance['id'] for lance in historico] == [corpo['id']]
+
+
+def test_post_lance_sem_token_retorna_401(client, leilao_aberto):
+    resposta = client.post(
+        f'/leiloes/{leilao_aberto.id}/lances', json={'valor': '150.00'}
+    )
+
+    assert resposta.status_code == HTTPStatus.UNAUTHORIZED
+
+
+def test_post_lance_abaixo_do_minimo_retorna_400(client, leilao_aberto):
+    _autenticar(client)
+
+    resposta = client.post(
+        f'/leiloes/{leilao_aberto.id}/lances', json={'valor': '99.99'}
+    )
+
+    assert resposta.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_post_lance_do_vendedor_no_proprio_leilao_retorna_400(
+    client, leilao_aberto
+):
+    _autenticar(client, usuario_id=leilao_aberto.vendedor_id)
+
+    resposta = client.post(
+        f'/leiloes/{leilao_aberto.id}/lances', json={'valor': '150.00'}
+    )
+
+    assert resposta.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_post_lance_fora_da_janela_retorna_400(client, leilao):
+    _autenticar(client)
+
+    resposta = client.post(
+        f'/leiloes/{leilao.id}/lances', json={'valor': '150.00'}
+    )
+
+    assert resposta.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_post_lance_em_leilao_inexistente_retorna_404(client):
+    _autenticar(client)
+
+    resposta = client.post(f'/leiloes/{uuid4()}/lances', json={'valor': '1'})
+
+    assert resposta.status_code == HTTPStatus.NOT_FOUND

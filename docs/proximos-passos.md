@@ -2,7 +2,7 @@
 
 Roteiro de implementação do **sistema-leilao**. A sequência é recomendada, não obrigatória.
 
-**Snapshot (out/2026, branch `dev`):** a fase de domínio e testes unitários está concluída. O gargalo agora é **persistência** (models SQLAlchemy, migrations Alembic e repositories). Sem isso, os casos de uso restantes, a API FastAPI e os jobs não avançam.
+**Snapshot (nov/2026, branch `dev`):** domínio, persistência (models, migrations e repositories), autenticação JWT, rotas de catálogo e lances e handlers de eventos estão integrados. Faltam principalmente o encerramento automático de leilões (`EncerrarLeilao` + jobs) e as rotas de histórico. As seções "O que vem agora" e "Ordem sugerida de PRs" abaixo registram o planejamento original de out/2026.
 
 Distribuição detalhada de responsabilidades por integrante em [`responsabilidades-equipe.md`](responsabilidades-equipe.md).
 
@@ -14,12 +14,14 @@ Contexto arquitetural em [`arquitetura.md`](arquitetura.md). Árvore de diretór
 
 | Camada | Situação |
 |---|---|
-| `domain/` | **Feito.** Entidades `Usuario`, `Categoria`, `Anuncio`, `Leilao`, `Lance` e hierarquia `DomainError` |
-| `tests/unit/` | **Feito.** Testes das entidades e de `CadastrarUsuario` |
-| `use_cases/` | **Parcial.** Só `CadastrarUsuario` (+ `interfaces.py` com `UsuarioRepository` e `PasswordHasher`) |
-| `adapters/` | **Vazio.** Pastas com `.gitkeep` |
-| `infra/db/`, `infra/api/`, `infra/jobs/` | **Vazio.** Pastas com `.gitkeep` |
-| CI | **Feito.** `Dockerfile` + `Jenkinsfile` (build da imagem e `pytest` com relatórios) |
+| `domain/` | **Feito.** Entidades `Usuario`, `Categoria`, `Anuncio`, `Leilao`, `Lance`, Value Object `Email`, eventos e hierarquia `DomainError` |
+| `tests/` | **Feito.** Testes unitários (domínio e casos de uso com mocks) e de integração (repositories e API) |
+| `use_cases/` | **Parcial.** `CadastrarUsuario`, `AutenticarUsuario`, `CriarAnuncio`, `IniciarLeilao`, `DarLance`, `ListarLances`. Falta `EncerrarLeilao` |
+| `adapters/` | **Feito.** Repositories SQLAlchemy (usuário, categoria, anúncio, leilão), segurança (bcrypt, JWT) e eventos (publisher e handlers) |
+| `infra/db/` | **Feito.** Models SQLAlchemy e migrations Alembic |
+| `infra/api/` | **Parcial.** `/auth` (register, login, me), `/anuncios` e `/leiloes`. Faltam rotas de histórico |
+| `infra/jobs/` | **Pendente.** Jobs de abertura e encerramento de leilões |
+| CI | **Feito.** Jenkins: Hadolint, Ruff, build, testes com cobertura, security scan (Trivy e Grype) e push da imagem |
 | `docker-compose.yml` | **Feito.** PostgreSQL 16 + Redis (Redis só se Celery) |
 
 ### PRs / branches já integrados em `dev`
@@ -275,6 +277,6 @@ Com esse recorte, valida-se lance, concorrência e encerramento automático ante
 
 - [Responsabilidades da equipe](responsabilidades-equipe.md) — domínios, guardiões e tarefas por integrante
 - [Arquitetura](arquitetura.md) — camadas, domínio, eventos, concorrência
-- [Hierarquia de exceções](hierarquia-excecoes.md) — `DomainError` unificado; códigos HTTP ainda pendentes
+- [Hierarquia de exceções](hierarquia-excecoes.md) — `DomainError` unificado e mapeamento para HTTP
 - [Estrutura e stack](estrutura-e-stack.md) — árvore de diretórios, stack e fluxo de requisição
 - [README](../README.md) — visão do produto, regras de leilão e atores
