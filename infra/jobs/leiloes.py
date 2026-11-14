@@ -60,7 +60,7 @@ def processar_leiloes(
         a_abrir = [
             leilao.id
             for leilao in repositorio.listar_por_status(StatusLeilao.AGENDADO)
-            if leilao.data_inicio <= agora < leilao.data_final
+            if leilao.esta_na_janela(agora)
         ]
         a_encerrar = [
             leilao.id

@@ -34,10 +34,6 @@ class DadosNovoAnuncio:
     data_final: datetime
 
 
-def _dentro_da_janela(leilao: Leilao, momento: datetime) -> bool:
-    return leilao.data_inicio <= momento < leilao.data_final
-
-
 class CriarAnuncio:
     def __init__(
         self,
@@ -81,7 +77,7 @@ class CriarAnuncio:
             raise CategoriaInvalidaError('categoria inexistente ou inativa')
 
         momento = self._relogio()
-        if _dentro_da_janela(leilao, momento):
+        if leilao.esta_na_janela(momento):
             leilao.abrir(momento)
 
         self._anuncios.salvar(anuncio)
