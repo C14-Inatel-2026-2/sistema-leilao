@@ -1,14 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from adapters.security.password_hasher import BcryptPasswordHasher
 from adapters.security.token_service import TokenService
-from domain.exceptions import (
-    CredenciaisInvalidasError,
-    EmailJaCadastradoError,
-    UsuarioInvalidoError,
-)
 from domain.usuario import Usuario
 from infra.api.dependencies import (
     UsuarioRepositoryDep,
@@ -39,21 +34,12 @@ def registrar(
     session: Session = Depends(get_session),
     hasher: BcryptPasswordHasher = Depends(get_password_hasher),
 ):
-    try:
-        usuario = CadastrarUsuario(repositorio, hasher).executar(
-            nome=dados.nome,
-            email=dados.email,
-            senha=dados.senha,
-            papel=dados.papel,
-        )
-    except UsuarioInvalidoError as erro:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro)
-        ) from erro
-    except EmailJaCadastradoError as erro:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(erro)
-        ) from erro
+    usuario = CadastrarUsuario(repositorio, hasher).executar(
+        nome=dados.nome,
+        email=dados.email,
+        senha=dados.senha,
+        papel=dados.papel,
+    )
     session.commit()
     return usuario
 
@@ -66,16 +52,9 @@ def login(
     tokens: TokenService = Depends(get_token_service),
 ):
     # Padrao OAuth2: o campo se chama "username", mas recebe o e-mail.
-    try:
-        usuario = AutenticarUsuario(repositorio, hasher).executar(
-            form.username, form.password
-        )
-    except CredenciaisInvalidasError as erro:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(erro),
-            headers={'WWW-Authenticate': 'Bearer'},
-        ) from erro
+    usuario = AutenticarUsuario(repositorio, hasher).executar(
+        form.username, form.password
+    )
     return TokenResponse(access_token=tokens.gerar(usuario))
 
 
