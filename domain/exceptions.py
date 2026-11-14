@@ -48,3 +48,11 @@ class LanceInvalidoError(DomainError):
 
 class LeilaoNaoEncontradoError(DomainError):
     """O leilao informado nao existe (a camada HTTP traduz para 404)."""
+
+
+class AnuncioNaoEncontradoError(DomainError):
+    """O anuncio informado nao existe (a camada HTTP traduz para 404)."""
+
+
+class AcessoNegadoError(DomainError):
+    """O usuario autenticado nao pode executar a operacao (HTTP 403)."""

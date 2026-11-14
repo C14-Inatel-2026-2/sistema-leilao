@@ -16,13 +16,17 @@ from adapters.repositories.usuario_repository import (
     SQLAlchemyUsuarioRepository,
 )
 from domain.anuncio import StatusAnuncio, TipoAnuncio
-from infra.api.dependencies import get_session
+from domain.usuario import Usuario
+from infra.api.dependencies import get_current_user, get_session
 from infra.api.schemas.anuncio import (
     AnuncioCriadoResponse,
     AnuncioResponse,
     CriarAnuncioRequest,
+    EditarAnuncioRequest,
 )
 from use_cases.criar_anuncio import CriarAnuncio, DadosNovoAnuncio
+from use_cases.editar_anuncio import EditarAnuncio
+from use_cases.inativar_anuncio import InativarAnuncio
 
 router = APIRouter(prefix='/anuncios', tags=['anuncios'])
 
@@ -71,3 +75,37 @@ def listar_anuncios(
         tipo=tipo,
         texto=texto,
     )
+
+
+@router.patch('/{anuncio_id}', response_model=AnuncioResponse)
+def editar_anuncio(
+    anuncio_id: UUID,
+    corpo: EditarAnuncioRequest,
+    session: Session = Depends(get_session),
+    vendedor: Usuario = Depends(get_current_user),
+):
+    anuncio = EditarAnuncio(
+        SQLAlchemyAnuncioRepository(session),
+        SQLAlchemyLeilaoRepository(session),
+    ).executar(
+        anuncio_id,
+        vendedor.id,
+        titulo=corpo.titulo,
+        descricao=corpo.descricao,
+        preco_referencia=corpo.preco_referencia,
+    )
+    session.commit()
+    return anuncio
+
+
+@router.post('/{anuncio_id}/inativar', response_model=AnuncioResponse)
+def inativar_anuncio(
+    anuncio_id: UUID,
+    session: Session = Depends(get_session),
+    vendedor: Usuario = Depends(get_current_user),
+):
+    anuncio = InativarAnuncio(SQLAlchemyAnuncioRepository(session)).executar(
+        anuncio_id, vendedor.id
+    )
+    session.commit()
+    return anuncio

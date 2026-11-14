@@ -2,6 +2,8 @@ from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
 from domain.exceptions import (
+    AcessoNegadoError,
+    AnuncioNaoEncontradoError,
     CredenciaisInvalidasError,
     DomainError,
     EmailJaCadastradoError,
@@ -19,8 +21,12 @@ def registrar_erros(app: FastAPI) -> None:
             headers = {'WWW-Authenticate': 'Bearer'}
         elif isinstance(erro, EmailJaCadastradoError):
             codigo = status.HTTP_409_CONFLICT
-        elif isinstance(erro, LeilaoNaoEncontradoError):
+        elif isinstance(
+            erro, (LeilaoNaoEncontradoError, AnuncioNaoEncontradoError)
+        ):
             codigo = status.HTTP_404_NOT_FOUND
+        elif isinstance(erro, AcessoNegadoError):
+            codigo = status.HTTP_403_FORBIDDEN
         return JSONResponse(
             status_code=codigo,
             content={'detail': str(erro)},
