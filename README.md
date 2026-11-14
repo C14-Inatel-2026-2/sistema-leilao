@@ -149,6 +149,7 @@ Antes da API e das migrations, copie o ambiente (`cp .env.example .env`) e suba 
 ## Documentação técnica
 
 - [Arquitetura](docs/arquitetura.md) — camadas, domínio, eventos, concorrência
+- [Diagramas](docs/diagramas/README.md) — casos de uso, classes, estados, sequência e componentes
 - [Hierarquia de exceções](docs/hierarquia-excecoes.md) — `DomainError` unificado e mapeamento para HTTP (400 validação, 401 credenciais/token, 409 e-mail duplicado)
 - [Estrutura e stack](docs/estrutura-e-stack.md) — árvore de diretórios e tecnologias
 - [Próximos passos](docs/proximos-passos.md) — estado atual e ordem de PRs

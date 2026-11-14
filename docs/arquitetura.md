@@ -4,6 +4,8 @@ API REST de marketplace (estilo OLX) com módulo de leilão. A aplicação é **
 
 O foco arquitetural está em **camadas bem definidas, desacoplamento e consistência sob concorrência**, não em complexidade artificial de regra de negócio.
 
+Os desenhos dessas camadas, do domínio e dos fluxos estão em [Diagramas](diagramas/README.md).
+
 ---
 
 ## Padrão arquitetural
