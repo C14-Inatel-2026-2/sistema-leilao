@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from infra.api.erros import registrar_erros
-from infra.api.routers import anuncios, auth, leiloes
+from infra.api.routers import anuncios, auth, leiloes, vendas
 from infra.jobs.leiloes import iniciar_agendador
 
 
@@ -27,4 +27,5 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(leiloes.router)
     app.include_router(anuncios.router)
+    app.include_router(vendas.router)
     return app

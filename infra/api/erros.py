@@ -8,6 +8,7 @@ from domain.exceptions import (
     DomainError,
     EmailJaCadastradoError,
     LeilaoNaoEncontradoError,
+    VendaNaoEncontradaError,
 )
 
 
@@ -22,7 +23,12 @@ def registrar_erros(app: FastAPI) -> None:
         elif isinstance(erro, EmailJaCadastradoError):
             codigo = status.HTTP_409_CONFLICT
         elif isinstance(
-            erro, (LeilaoNaoEncontradoError, AnuncioNaoEncontradoError)
+            erro,
+            (
+                LeilaoNaoEncontradoError,
+                AnuncioNaoEncontradoError,
+                VendaNaoEncontradaError,
+            ),
         ):
             codigo = status.HTTP_404_NOT_FOUND
         elif isinstance(erro, AcessoNegadoError):

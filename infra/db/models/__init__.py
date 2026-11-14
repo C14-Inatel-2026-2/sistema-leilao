@@ -4,6 +4,7 @@ from infra.db.models.categoria import CategoriaModel
 from infra.db.models.lance import LanceModel
 from infra.db.models.leilao import LeilaoModel
 from infra.db.models.usuario import UsuarioModel
+from infra.db.models.venda import VendaModel
 
 __all__ = [
     'AnuncioModel',
@@ -12,4 +13,5 @@ __all__ = [
     'LanceModel',
     'LeilaoModel',
     'UsuarioModel',
+    'VendaModel',
 ]

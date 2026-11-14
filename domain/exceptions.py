@@ -56,3 +56,11 @@ class AnuncioNaoEncontradoError(DomainError):
 
 class AcessoNegadoError(DomainError):
     """O usuario autenticado nao pode executar a operacao (HTTP 403)."""
+
+
+class VendaInvalidaError(DomainError):
+    """Venda recusada por valor, estado ou leilao sem vencedor."""
+
+
+class VendaNaoEncontradaError(DomainError):
+    """A venda informada nao existe (a camada HTTP traduz para 404)."""
