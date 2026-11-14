@@ -26,6 +26,8 @@ pydantic-settings = "^2.6"
 python-multipart = ">=0.0.30"
 bcrypt = "^5.0.0"
 mako = ">=1.4.2"
+# email-validator puxa dnspython; 2.9.0 tem CVE-2026-128089 (HIGH), corrigida em 2.9.2.
+dnspython = ">=2.9.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.3"
