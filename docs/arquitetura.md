@@ -37,7 +37,7 @@ O domínio reside no centro e **não conhece nenhuma camada externa**:
 [Eventos/Jobs]           [Infraestrutura e Rotas]
 ```
 
-A infraestrutura e os adaptadores conhecem o domínio; o domínio nunca importa FastAPI, SQLAlchemy ou Celery.
+A infraestrutura e os adaptadores conhecem o domínio; o domínio nunca importa FastAPI ou SQLAlchemy.
 
 ---
 
@@ -121,12 +121,7 @@ EncerrarLeilao (caso de uso)
 Publica LeilaoEncerrado
 ```
 
-**Escolha de tecnologia:**
-
-- **APScheduler** (MVP): scheduler iniciado no `lifespan` do FastAPI; cada job abre a própria `SessionLocal` e dispara casos de uso
-- **Celery + Redis** (evolução): fila de tarefas com worker separado; indicado se o volume de jobs, retries ou notificações crescer
-
-Em ambos os casos, o job **não contém regra de negócio** — apenas dispara casos de uso já definidos no domínio.
+**Escolha de tecnologia:** APScheduler, iniciado no `lifespan` do FastAPI. Cada job abre a própria `SessionLocal` e dispara casos de uso. O job **não contém regra de negócio** — apenas dispara casos de uso já definidos no domínio.
 
 ---
 

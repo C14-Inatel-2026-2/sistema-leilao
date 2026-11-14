@@ -22,7 +22,7 @@ Contexto arquitetural em [`arquitetura.md`](arquitetura.md). Árvore de diretór
 | `infra/api/` | **Parcial.** `/auth` (register, login, me), `/anuncios` e `/leiloes`. Faltam rotas de histórico |
 | `infra/jobs/` | **Pendente.** Jobs de abertura e encerramento de leilões |
 | CI | **Feito.** Jenkins: Hadolint, Ruff, build, testes com cobertura, security scan (Trivy e Grype) e push da imagem |
-| `docker-compose.yml` | **Feito.** PostgreSQL 16 + Redis (Redis só se Celery) |
+| `docker-compose.yml` | **Feito.** PostgreSQL 16 |
 
 ### PRs / branches já integrados em `dev`
 
@@ -152,7 +152,6 @@ Necessário a partir dos models / da API. O arquivo **não** é versionado.
 | `JWT_SECRET_KEY` | Assinatura dos tokens JWT |
 | `JWT_ALGORITHM` | Algoritmo JWT (`HS256`) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Validade do access token |
-| `REDIS_URL` | Só se adotar Celery |
 
 Subir a API: `uvicorn infra.api.app:create_app --factory --reload`.
 
@@ -264,7 +263,6 @@ Caminho mínimo para **criar leilão → dar lance → encerrar automaticamente*
 - Cadastro completo de anúncios com categorias e filtros
 - Venda direta (sem leilão)
 - Status `pago` e fluxo de pagamento
-- Celery + Redis (substituir APScheduler)
 - Notificações por e-mail
 - Frontend
 - Códigos estáveis de erro na API (`codigo` + `mensagem`) — a base `DomainError` já está unificada; ver [`hierarquia-excecoes.md`](hierarquia-excecoes.md)
