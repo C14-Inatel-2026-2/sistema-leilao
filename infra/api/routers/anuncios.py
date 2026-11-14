@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from adapters.repositories.anuncio_repository import (
@@ -16,7 +16,6 @@ from adapters.repositories.usuario_repository import (
     SQLAlchemyUsuarioRepository,
 )
 from domain.anuncio import StatusAnuncio, TipoAnuncio
-from domain.exceptions import DomainError
 from infra.api.dependencies import get_session
 from infra.api.schemas.anuncio import (
     AnuncioCriadoResponse,
@@ -53,10 +52,7 @@ def criar_anuncio(
         SQLAlchemyLeilaoRepository(session),
         SQLAlchemyUsuarioRepository(session),
     )
-    try:
-        anuncio, leilao = caso_de_uso.executar(_dados(corpo))
-    except DomainError as erro:
-        raise HTTPException(status_code=400, detail=str(erro)) from erro
+    anuncio, leilao = caso_de_uso.executar(_dados(corpo))
     session.commit()
     return {'anuncio': anuncio, 'leilao': leilao}
 

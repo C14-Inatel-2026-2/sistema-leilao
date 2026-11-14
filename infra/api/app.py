@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from infra.api.erros import registrar_erros
 from infra.api.routers import anuncios, auth, leiloes
 from infra.jobs.leiloes import iniciar_agendador
 
@@ -17,6 +18,7 @@ async def lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title='Sistema de Leilão', lifespan=lifespan)
+    registrar_erros(app)
 
     @app.get('/')
     def health():
