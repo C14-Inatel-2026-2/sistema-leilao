@@ -1,26 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from adapters.repositories.tempo import com_fuso
 from domain.categoria import Categoria
 from infra.db.models.categoria import CategoriaModel
 
 _CAMPOS = ('nome', 'ativa', 'criado_em')
 
 
-def _com_fuso(momento: datetime) -> datetime:
-    if momento.tzinfo is None:
-        return momento.replace(tzinfo=timezone.utc)
-    return momento
-
-
 def _para_dominio(model: CategoriaModel) -> Categoria:
     dados = {campo: getattr(model, campo) for campo in _CAMPOS}
-    dados['criado_em'] = _com_fuso(dados['criado_em'])
+    dados['criado_em'] = com_fuso(dados['criado_em'])
     return Categoria(id=model.id, **dados)
 
 

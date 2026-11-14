@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from adapters.repositories.tempo import com_fuso
 from infra.db.models.auditoria import AuditoriaLeilaoModel
-
-
-def _com_fuso(momento: datetime) -> datetime:
-    if momento.tzinfo is None:
-        return momento.replace(tzinfo=timezone.utc)
-    return momento
 
 
 class SQLAlchemyAuditoriaRepository:
@@ -34,7 +29,7 @@ class SQLAlchemyAuditoriaRepository:
             lance_id=lance_id,
             usuario_id=usuario_id,
             valor=valor,
-            data_evento=_com_fuso(data_hora),
+            data_evento=com_fuso(data_hora),
         )
         self._session.add(registro)
         self._session.flush()
@@ -53,7 +48,7 @@ class SQLAlchemyAuditoriaRepository:
             lance_id=None,
             usuario_id=vencedor_id,
             valor=valor_final,
-            data_evento=_com_fuso(data_encerramento),
+            data_evento=com_fuso(data_encerramento),
             motivo=motivo,
         )
         self._session.add(registro)
@@ -67,6 +62,6 @@ class SQLAlchemyAuditoriaRepository:
         )
         registros = list(self._session.scalars(consulta).all())
         for r in registros:
-            r.data_evento = _com_fuso(r.data_evento)
-            r.criado_em = _com_fuso(r.criado_em)
+            r.data_evento = com_fuso(r.data_evento)
+            r.criado_em = com_fuso(r.criado_em)
         return registros

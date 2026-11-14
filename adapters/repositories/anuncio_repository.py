@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from adapters.repositories.tempo import com_fuso
 from domain.anuncio import Anuncio, StatusAnuncio, TipoAnuncio
 from infra.db.models.anuncio import AnuncioModel
 
@@ -22,15 +22,9 @@ _CAMPOS = (
 )
 
 
-def _com_fuso(momento: datetime) -> datetime:
-    if momento.tzinfo is None:
-        return momento.replace(tzinfo=timezone.utc)
-    return momento
-
-
 def _para_dominio(model: AnuncioModel) -> Anuncio:
     dados = {campo: getattr(model, campo) for campo in _CAMPOS}
-    dados['criado_em'] = _com_fuso(dados['criado_em'])
+    dados['criado_em'] = com_fuso(dados['criado_em'])
     return Anuncio(id=model.id, **dados)
 
 
